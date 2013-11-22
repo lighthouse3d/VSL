@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Models", "Models\Models.vcxproj", "{32F538A8-7E21-4142-8736-BFC60B9A4C39}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4F35CEF9-E246-4582-9F98-BD7BB4E7FEEB} = {4F35CEF9-E246-4582-9F98-BD7BB4E7FEEB}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VSL", "VSL\VSL.vcxproj", "{4F35CEF9-E246-4582-9F98-BD7BB4E7FEEB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{32F538A8-7E21-4142-8736-BFC60B9A4C39}.Debug|Win32.ActiveCfg = Debug|Win32
+		{32F538A8-7E21-4142-8736-BFC60B9A4C39}.Debug|Win32.Build.0 = Debug|Win32
+		{32F538A8-7E21-4142-8736-BFC60B9A4C39}.Release|Win32.ActiveCfg = Release|Win32
+		{32F538A8-7E21-4142-8736-BFC60B9A4C39}.Release|Win32.Build.0 = Release|Win32
+		{4F35CEF9-E246-4582-9F98-BD7BB4E7FEEB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4F35CEF9-E246-4582-9F98-BD7BB4E7FEEB}.Debug|Win32.Build.0 = Debug|Win32
+		{4F35CEF9-E246-4582-9F98-BD7BB4E7FEEB}.Release|Win32.ActiveCfg = Release|Win32
+		{4F35CEF9-E246-4582-9F98-BD7BB4E7FEEB}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
