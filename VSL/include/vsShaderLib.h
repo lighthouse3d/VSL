@@ -11,7 +11,10 @@
  * This class aims at making life simpler
  * when using shaders and uniforms
  *
- * \version 0.2.1
+ * version 0.2.2
+ *		Added image load store types
+ *
+ * version 0.2.1
  *		Added more attrib defs, namely
  *			tangents, bi tangents, and 4 custom
  * 
@@ -63,6 +66,7 @@ public:
 		TESS_CONTROL_SHADER,
 		TESS_EVAL_SHADER,
 		FRAGMENT_SHADER,
+		COMPUTE_SHADER,
 		COUNT_SHADER_TYPE
 	};
 

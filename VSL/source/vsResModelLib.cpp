@@ -379,10 +379,10 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 		}
 		if (pUseAdjacency) {
 			printf("\n");
-			for (unsigned int i = 0; i < mesh->mNumFaces * 3; ++i)
+			for (int i = 0; i < mesh->mNumFaces * 3; ++i)
 				printf("%d ", faceArray[i]);
 			printf("\n");
-			for (unsigned int i = 0; i < mesh->mNumFaces * 6; ++i)
+			for (int i = 0; i < mesh->mNumFaces * 6; ++i)
 				printf("%d ", adjFaceArray[i]);
 			printf("\n");
 			aMesh.numIndices = sc->mMeshes[n]->mNumFaces * 6;

@@ -47,7 +47,8 @@ VSShaderLib::spGLShaderTypes[VSShaderLib::COUNT_SHADER_TYPE] = {
 								GL_GEOMETRY_SHADER,
 								GL_TESS_CONTROL_SHADER,
 								GL_TESS_EVALUATION_SHADER,
-								GL_FRAGMENT_SHADER};
+								GL_FRAGMENT_SHADER,
+								GL_COMPUTE_SHADER};
 
 
 std::string 
@@ -56,7 +57,8 @@ VSShaderLib::spStringShaderTypes[VSShaderLib::COUNT_SHADER_TYPE] = {
 								"Geometry Shader",
 								"Tesselation Control Shader",
 								"Tesselation Evaluation Shader",
-								"Fragment Shader"};
+								"Fragment Shader",
+								"Compute Shader"};
 
 
 std::map<std::string, VSShaderLib::UniformBlock> VSShaderLib::spBlocks;
@@ -290,6 +292,39 @@ VSShaderLib::setUniform(std::string name, void *value) {
 			break;
 
 		// Samplers, Ints and Bools
+		case GL_IMAGE_1D :
+		case GL_IMAGE_2D :
+		case GL_IMAGE_3D :
+		case GL_IMAGE_2D_RECT :
+		case GL_IMAGE_CUBE :
+		case GL_IMAGE_BUFFER :
+		case GL_IMAGE_1D_ARRAY :
+		case GL_IMAGE_2D_ARRAY :
+		case GL_IMAGE_CUBE_MAP_ARRAY :
+		case GL_IMAGE_2D_MULTISAMPLE :
+		case GL_IMAGE_2D_MULTISAMPLE_ARRAY :
+		case GL_INT_IMAGE_1D :
+		case GL_INT_IMAGE_2D :
+		case GL_INT_IMAGE_3D :
+		case GL_INT_IMAGE_2D_RECT :
+		case GL_INT_IMAGE_CUBE :
+		case GL_INT_IMAGE_BUFFER :
+		case GL_INT_IMAGE_1D_ARRAY :
+		case GL_INT_IMAGE_2D_ARRAY :
+		case GL_INT_IMAGE_CUBE_MAP_ARRAY :
+		case GL_INT_IMAGE_2D_MULTISAMPLE :
+		case GL_INT_IMAGE_2D_MULTISAMPLE_ARRAY :
+		case GL_UNSIGNED_INT_IMAGE_1D :
+		case GL_UNSIGNED_INT_IMAGE_2D :
+		case GL_UNSIGNED_INT_IMAGE_3D :
+		case GL_UNSIGNED_INT_IMAGE_2D_RECT :
+		case GL_UNSIGNED_INT_IMAGE_CUBE :
+		case GL_UNSIGNED_INT_IMAGE_BUFFER :
+		case GL_UNSIGNED_INT_IMAGE_1D_ARRAY :
+		case GL_UNSIGNED_INT_IMAGE_2D_ARRAY :
+		case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY :
+		case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE :
+		case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY :
 		case GL_SAMPLER_1D:
 		case GL_SAMPLER_2D:
 		case GL_SAMPLER_3D:
