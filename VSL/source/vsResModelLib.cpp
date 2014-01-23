@@ -379,10 +379,10 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 		}
 		if (pUseAdjacency) {
 			printf("\n");
-			for (int i = 0; i < mesh->mNumFaces * 3; ++i)
+			for (unsigned int i = 0; i < mesh->mNumFaces * 3; ++i)
 				printf("%d ", faceArray[i]);
 			printf("\n");
-			for (int i = 0; i < mesh->mNumFaces * 6; ++i)
+			for (unsigned int i = 0; i < mesh->mNumFaces * 6; ++i)
 				printf("%d ", adjFaceArray[i]);
 			printf("\n");
 			aMesh.numIndices = sc->mMeshes[n]->mNumFaces * 6;
@@ -733,6 +733,19 @@ VSResModelLib::setColor(unsigned int mesh, VSResourceLib::MaterialSemantics m, f
 			memcpy(mMyMeshes[mesh].mat.emissive, values, sizeof(float)*4);
 			break;
 	}
+}
+
+
+void
+VSResModelLib::setMaterialColor(MaterialColors m) {
+
+	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
+
+		memcpy(mMyMeshes[i].mat.ambient, &(VSResourceLib::Colors[m][0]), 3*sizeof(float));
+		memcpy(mMyMeshes[i].mat.diffuse, &(VSResourceLib::Colors[m][3]), 3*sizeof(float));
+		memcpy(mMyMeshes[i].mat.specular, &(VSResourceLib::Colors[m][6]), 3*sizeof(float));
+		mMyMeshes[i].mat.shininess = VSResourceLib::Colors[m][9];
+	}	
 }
 
 #ifdef _VSL_TEXTURE_WITH_DEVIL

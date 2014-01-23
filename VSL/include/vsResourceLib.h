@@ -104,6 +104,35 @@ public:
 		TEX_COUNT
 	} MaterialComponent;
 
+	enum MaterialColors {
+		EMERALD,
+		JADE,
+		OBSIDIAN,
+		PEARL,
+		RUBY,
+		TURQUOISE,
+		BRASS,
+		BRONZE,
+		CHROME,
+		COPPER,
+		GOLD,
+		SILVER,
+		BLACK_PLASTIC,
+		CYAN_PLASTIC,
+		GREEN_PLASTIC,
+		RED_PLASTIC,
+		WHITE_PLASTIC,
+		YELLOW_PLASTIC,
+		BLACK_RUBBER,
+		CYAN_RUBBER,
+		GREEN_RUBBER,
+		RED_RUBBER,
+		WHITE_RUBBER,
+		YELLOW_RUBBER
+	} MaterialColor;
+
+	static float Colors[24][10]; 
+
 	VSResourceLib();
 	~VSResourceLib();
 

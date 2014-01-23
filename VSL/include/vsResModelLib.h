@@ -5,6 +5,10 @@
  *
  * VSResModelLib - Very Simple Resource Model Library
  *
+ * \version 0.4
+ *		Added Materials from teapots.c
+ *		https://www.sgi.com/products/software/opengl/examples/redbook/source/teapots.c
+ *
  * \version 0.3
  *		Updated the lib to use Assimp 3.0
  *
@@ -83,6 +87,8 @@ public:
 	virtual bool load(std::string filename);
 	/// implementation of the superclass abstract method
 	virtual void render();
+	/// set a predefined material
+	void setMaterialColor(MaterialColors m);
 	/// set a color component for all meshes
 	void setColor(VSResourceLib::MaterialSemantics m, float *values);
 	/// set a color component for a particular mesh
