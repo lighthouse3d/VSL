@@ -38,7 +38,7 @@
 
 
 
-VSResModelLib::VSResModelLib():pScene(0), pUseAdjacency(false)
+VSResModelLib::VSResModelLib():pScene(0), pUseAdjacency(true)
 {
 	mMyMeshes.reserve(10);
 	pMyMeshesAux.reserve(10);
@@ -340,6 +340,10 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 				edge[i*3+1].next = &edge[i*3+2];
 				edge[i*3+2].next = &edge[i*3];
 
+				edge[i*3].twin   = NULL;
+				edge[i*3+1].twin = NULL;
+				edge[i*3+2].twin = NULL;
+
 				myEdges[std::pair<unsigned int,unsigned int>(faceArray[i*3+2],faceArray[i*3])] = &edge[i*3];
 				myEdges[std::pair<unsigned int,unsigned int>(faceArray[i*3],faceArray[i*3+1])] = &edge[i*3+1];
 				myEdges[std::pair<unsigned int,unsigned int>(faceArray[i*3+1],faceArray[i*3+2])] = &edge[i*3+2];
@@ -378,13 +382,13 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 			}
 		}
 		if (pUseAdjacency) {
-			printf("\n");
-			for (unsigned int i = 0; i < mesh->mNumFaces * 3; ++i)
-				printf("%d ", faceArray[i]);
-			printf("\n");
-			for (unsigned int i = 0; i < mesh->mNumFaces * 6; ++i)
-				printf("%d ", adjFaceArray[i]);
-			printf("\n");
+			//printf("\n");
+			//for (unsigned int i = 0; i < mesh->mNumFaces * 3; ++i)
+			//	printf("%d ", faceArray[i]);
+			//printf("\n");
+			//for (unsigned int i = 0; i < mesh->mNumFaces * 6; ++i)
+			//	printf("%d ", adjFaceArray[i]);
+			//printf("\n");
 			aMesh.numIndices = sc->mMeshes[n]->mNumFaces * 6;
 		}
 		else

@@ -5,6 +5,10 @@
  *
  * VSResourceLib - Very Simple Resource Library
  *
+ * \version 0.1.4
+ *		Added Materials from teapots.c
+ *		https://www.sgi.com/products/software/opengl/examples/redbook/source/teapots.c
+ *
  * \version 0.1.3
  *		setting the material block name is now a static function
  *
