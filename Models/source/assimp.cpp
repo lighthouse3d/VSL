@@ -43,7 +43,7 @@
 
 
 VSMathLib *vsml;
-VSShaderLib shader;
+VSShaderLib program;
 VSFontLib vsfl;
 VSResModelLib myModel;
 unsigned int aSentence, profileSentence;
@@ -113,7 +113,7 @@ void renderScene(void) {
 			PROFILE_GL("Render models");
 
 			// set the shader to render models
-			glUseProgram(shader.getProgramIndex());
+			glUseProgram(program.getProgramIndex());
 			// start counting primitives
 			glBeginQuery(GL_PRIMITIVES_GENERATED, counterQ);
 			// render array of models
@@ -148,7 +148,7 @@ void renderScene(void) {
 			std::string s = VSProfileLib::DumpLevels();
 			vsfl.prepareSentence(profileSentence, s);
 			//set the shader for rendering the sentence
-			glUseProgram(shader.getProgramIndex());
+			glUseProgram(program.getProgramIndex());
 			// render sentences
 			vsfl.renderSentence(10,10,aSentence);
 			vsfl.renderSentence(10, 30, profileSentence);
@@ -307,22 +307,22 @@ void mouseWheel(int wheel, int direction, int x, int y) {
 GLuint setupShaders() {
 
 	// Shader for fonts and models
-	shader.init();
-	shader.loadShader(VSShaderLib::VERTEX_SHADER, "shaders/dirlightdiffambpix.vert");
-	shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "shaders/dirlightdiffambpix.frag");
+	program.init();
+	program.loadShader(VSShaderLib::VERTEX_SHADER, "shaders/dirlightdiffambpix.vert");
+	program.loadShader(VSShaderLib::FRAGMENT_SHADER, "shaders/dirlightdiffambpix.frag");
 
 	// set semantics for the shader variables
-	shader.setProgramOutput(0,"outputF");
-	shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "position");
-	shader.setVertexAttribName(VSShaderLib::TEXTURE_COORD_ATTRIB, "texCoord");
-	shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "normal");
+	program.setProgramOutput(0, "outputF");
+	program.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "position");
+	program.setVertexAttribName(VSShaderLib::TEXTURE_COORD_ATTRIB, "texCoord");
+	program.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "normal");
 
-	shader.prepareProgram();
+	program.prepareProgram();
 
-	VSGLInfoLib::getProgramInfo(shader.getProgramIndex());
-	printf("%s\n", shader.getAllInfoLogs().c_str());
+	VSGLInfoLib::getProgramInfo(program.getProgramIndex());
+	printf("%s\n", program.getAllInfoLogs().c_str());
 	// set sampler uniform
-	shader.setUniform("texUnit", 0);
+	program.setUniform("texUnit", 0);
 
 	return(1);
 }
