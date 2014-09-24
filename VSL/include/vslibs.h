@@ -21,9 +21,9 @@
 #ifdef _WIN32
 
 #ifdef _DEBUG
-#pragma comment(lib,"vsld.lib")
+#pragma comment(lib,"l3dvsld.lib")
 #else
-#pragma comment(lib,"vsl.lib")
+#pragma comment(lib,"l3dvsl.lib")
 #endif
 
 #pragma comment(lib,"glew32.lib")

@@ -42,10 +42,9 @@
 #include "vslibs.h"
 
 
-std::ostream *f;
 VSMathLib *vsml;
-VSShaderLib shader,shaderTess;
-VSFontLib vsfl2, vsfl;
+VSShaderLib shader;
+VSFontLib vsfl;
 VSResModelLib myModel;
 unsigned int aSentence, profileSentence;
 
@@ -65,7 +64,7 @@ float alpha = 0.0f, beta = 0.0f;
 float r = 5.0f;
 
 
-// Frame counting and FPS computation
+//// Frame counting and FPS computation
 long myTime,timebase = 0,frame = 0;
 char s[32];
 
@@ -370,7 +369,7 @@ void initVSL() {
 
 	// Init VSML
 	vsml = VSMathLib::getInstance();
-	vsml->setUniformBlockName("Matrices");
+	vsml->setUniformBlockName("Matrices");	
 	vsml->setUniformName(VSMathLib::PROJ_VIEW_MODEL, "projViewModelMatrix");
 	vsml->setUniformName(VSMathLib::NORMAL, "normalMatrix");
 

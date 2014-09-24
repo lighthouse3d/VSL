@@ -862,9 +862,10 @@ VSShaderLib::addUniforms() {
 		// -1 indicates that is not an active uniform, although it may be present in a
 		// uniform block
 		loc = glGetUniformLocation(pProgram, name);
-		glGetActiveUniformsiv(pProgram, 1, &loc, GL_UNIFORM_ARRAY_STRIDE, &uniArrayStride);
-		if (loc != -1)
+		if (loc != -1) {
+			glGetActiveUniformsiv(pProgram, 1, (GLuint*)&i, GL_UNIFORM_ARRAY_STRIDE, &uniArrayStride);
 			addUniform(name, type, size);
+		}
 	}
 	free(name);
 }

@@ -83,6 +83,9 @@ VSResourceLib::VSResourceLib(): mScaleToUnitCube(1.0), bbVAO(0), bbInit(false)
 	/* initialization of DevIL */
 #ifdef _VSL_TEXTURE_WITH_DEVIL
 	ilInit(); 
+	ilEnable(IL_ORIGIN_SET);
+	ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
+
 #endif
 }
 

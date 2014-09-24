@@ -31,7 +31,7 @@
 #define VSPL_PROFILE_CPU_AND_GPU 2
 
 
-#define VSPL_PROFILE 0
+#define VSPL_PROFILE VSPL_PROFILE_CPU
 
 // Available clocks
 // note that gettimeofday is not available on windows!

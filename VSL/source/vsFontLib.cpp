@@ -10,8 +10,12 @@ http://www.lighthouse3d.com/very-simple-libs
 
 #include "vsFontLib.h"
 
-#ifdef _WIN32
-#pragma comment(lib,"tinyxml.lib")
+#ifdef _WIN32 
+#ifdef _DEBUG
+#pragma comment(lib,"tinyxmld.lib")
+#else
+#pragma comment(lib, "tinyxml.lib")
+#endif
 #endif
 
 

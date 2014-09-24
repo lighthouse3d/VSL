@@ -423,10 +423,14 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 			aMesh.positions = (float *) malloc(sizeof(float) * 3 * mesh->mNumVertices);
 			memcpy(aMesh.positions, mesh->mVertices, sizeof(float) * 3 * mesh->mNumVertices);
 
+			//glGenBuffers(1, &buffer);
+			//glBindBuffer(GL_ARRAY_BUFFER, buffer);
+			//glBufferData(GL_ARRAY_BUFFER, 160000000, NULL, GL_STATIC_DRAW);
+
+
 			glGenBuffers(1, &buffer);
 			glBindBuffer(GL_ARRAY_BUFFER, buffer);
-			glBufferData(GL_ARRAY_BUFFER, 
-				sizeof(float)*3*mesh->mNumVertices, 
+			glBufferData(GL_ARRAY_BUFFER, sizeof(float)*3*mesh->mNumVertices, 
 				mesh->mVertices, GL_STATIC_DRAW);
 			glEnableVertexAttribArray(
 					VSShaderLib::VERTEX_COORD_ATTRIB);
