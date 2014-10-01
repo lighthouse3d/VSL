@@ -1,4 +1,4 @@
-#version 420
+#version 330
 
 layout (std140) uniform Material {
 	vec4 diffuse;
@@ -13,6 +13,7 @@ uniform	sampler2D texUnit;
 
 in vec3 Normal;
 in vec2 TexCoord;
+
 out vec4 outputF;
 
 void main()

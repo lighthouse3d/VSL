@@ -320,6 +320,7 @@ GLuint setupShaders() {
 	program.prepareProgram();
 
 	VSGLInfoLib::getProgramInfo(program.getProgramIndex());
+	VSGLInfoLib::getUniformsInfo(program.getProgramIndex());
 	printf("%s\n", program.getAllInfoLogs().c_str());
 	// set sampler uniform
 	program.setUniform("texUnit", 0);

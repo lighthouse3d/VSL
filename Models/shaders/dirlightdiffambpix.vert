@@ -1,4 +1,4 @@
-#version 150
+#version 330
 
 layout (std140) uniform Matrices {
 
@@ -6,13 +6,10 @@ layout (std140) uniform Matrices {
 	mat3 normalMatrix;
 };
 
-
-
 in vec3 position;
 in vec3 normal;
 in vec2 texCoord;
 
-out vec4 vertexPos;
 out vec2 TexCoord;
 out vec3 Normal;
 
