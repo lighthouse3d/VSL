@@ -396,7 +396,7 @@ int main(int argc, char **argv) {
 	glutInitDisplayMode(GLUT_DEPTH|GLUT_DOUBLE|GLUT_RGBA|GLUT_MULTISAMPLE);
 
 	// Set context
-	glutInitContextVersion (3, 3);
+	glutInitContextVersion (4, 4);
 	glutInitContextProfile (GLUT_CORE_PROFILE );
 
 	glutInitWindowPosition(100,100);
@@ -421,7 +421,7 @@ int main(int argc, char **argv) {
 //	Init GLEW
 	glewExperimental = GL_TRUE;
 	glewInit();
-	if (!glewIsSupported("GL_VERSION_3_3")) {
+	if (!glewIsSupported("GL_VERSION_4_4")) {
 		printf("OpenGL 3.3 not supported\n");
 		exit(1);
 	}
