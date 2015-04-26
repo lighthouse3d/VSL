@@ -10,6 +10,7 @@ layout (std140) uniform Material {
 };
 
 uniform	sampler2D texUnit;
+uniform vec3 lightDir;
 
 in vec3 Normal;
 in vec2 TexCoord;
@@ -20,11 +21,11 @@ void main()
 {
 	vec4 color, emission,amb;
 	float intensity;
-	vec3 lightDir, n;
+	vec3 ld, n;
 	
-	lightDir = normalize(vec3(1.0,1.0,1.0));
+	ld = normalize(lightDir);
 	n = normalize(Normal);	
-	intensity = max(dot(lightDir,n),0.0);
+	intensity = max(dot(ld,n),0.0);
 	
 	if (texCount == 0) {
 		color = diffuse;
@@ -37,6 +38,7 @@ void main()
 		emission = texture(texUnit, TexCoord) * emissive;
 	}
 	outputF = (color * intensity) + amb + emission;
+	outputF = vec4(intensity,intensity,intensity, 1);
 }
 
 

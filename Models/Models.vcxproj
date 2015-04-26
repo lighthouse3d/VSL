@@ -85,6 +85,8 @@
     <ClCompile Include="source\assimp.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\color.frag" />
+    <None Include="shaders\color.vert" />
     <None Include="shaders\dirlightdiffambpix.frag" />
     <None Include="shaders\dirlightdiffambpix.vert" />
   </ItemGroup>

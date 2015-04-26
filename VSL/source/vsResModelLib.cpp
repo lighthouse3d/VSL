@@ -38,7 +38,7 @@
 
 
 
-VSResModelLib::VSResModelLib():pScene(0), pUseAdjacency(true)
+VSResModelLib::VSResModelLib():pScene(0), pUseAdjacency(false)
 {
 	mMyMeshes.reserve(10);
 	pMyMeshesAux.reserve(10);
@@ -180,8 +180,6 @@ VSResModelLib::load(std::string filename) {
 
 void 
 VSResModelLib::render () {
-
-	// we are only going to use texture unit 0
 
 	mVSML->pushMatrix(VSMathLib::MODEL);
 	//mVSML->scale(mScaleToUnitCube, mScaleToUnitCube, mScaleToUnitCube);

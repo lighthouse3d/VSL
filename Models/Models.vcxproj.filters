@@ -29,5 +29,11 @@
     <None Include="shaders\dirlightdiffambpix.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="shaders\color.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\color.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

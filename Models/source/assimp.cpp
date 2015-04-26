@@ -43,7 +43,7 @@
 
 
 VSMathLib *vsml;
-VSShaderLib program;
+VSShaderLib program, programFonts;
 VSFontLib vsfl;
 VSResModelLib myModel;
 unsigned int aSentence, profileSentence;
@@ -133,22 +133,22 @@ void renderScene(void) {
 		frame++;
 		myTime=glutGet(GLUT_ELAPSED_TIME);
 		if (myTime - timebase > 1000) {
-				sprintf(s,"FPS:%4.2f  Counter: %d",
+				sprintf(s,"FPS:%4.2f  Triangles: %d",
 					frame*1000.0/(myTime-timebase) , primitiveCounter);
 			timebase = myTime;
 			frame = 0;
 			vsfl.prepareSentence(aSentence,s);
-			glutSetWindowTitle(s);
 		}
 
 		// Display text info
 		{
 			PROFILE("Dump");
+			//set the shader for rendering the sentence
+			glUseProgram(programFonts.getProgramIndex());
 			// prepare sentence with profile info
 			std::string s = VSProfileLib::DumpLevels();
 			vsfl.prepareSentence(profileSentence, s);
 			//set the shader for rendering the sentence
-			glUseProgram(program.getProgramIndex());
 			// render sentences
 			vsfl.renderSentence(10,10,aSentence);
 			vsfl.renderSentence(10, 30, profileSentence);
@@ -306,7 +306,27 @@ void mouseWheel(int wheel, int direction, int x, int y) {
 
 GLuint setupShaders() {
 
-	// Shader for fonts and models
+	// Shader for fonts
+	programFonts.init();
+	programFonts.loadShader(VSShaderLib::VERTEX_SHADER, "shaders/color.vert");
+	programFonts.loadShader(VSShaderLib::FRAGMENT_SHADER, "shaders/color.frag");
+
+	// set semantics for the shader variables
+	programFonts.setProgramOutput(0,"outputF");
+	programFonts.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "position");
+	programFonts.setVertexAttribName(VSShaderLib::TEXTURE_COORD_ATTRIB, "texCoord");
+
+
+	programFonts.prepareProgram();
+	VSGLInfoLib::getUniformsInfo(programFonts.getProgramIndex());
+
+	// add sampler uniforms
+	programFonts.setUniform("texUnit", 0);
+
+	printf("InfoLog for Font Shader\n%s\n\n", programFonts.getAllInfoLogs().c_str());
+
+
+	// Shader formodels
 	program.init();
 	program.loadShader(VSShaderLib::VERTEX_SHADER, "shaders/dirlightdiffambpix.vert");
 	program.loadShader(VSShaderLib::FRAGMENT_SHADER, "shaders/dirlightdiffambpix.frag");
@@ -321,9 +341,11 @@ GLuint setupShaders() {
 
 	VSGLInfoLib::getProgramInfo(program.getProgramIndex());
 	VSGLInfoLib::getUniformsInfo(program.getProgramIndex());
-	printf("%s\n", program.getAllInfoLogs().c_str());
+	printf("InfoLog for Model Shader\n%s\n", program.getAllInfoLogs().c_str());
 	// set sampler uniform
 	program.setUniform("texUnit", 0);
+	float ld[3] = {1.0f, 1.0f, 1.0f};
+	program.setUniform("lightDir", ld);
 
 	return(1);
 }
@@ -396,7 +418,7 @@ int main(int argc, char **argv) {
 	glutInitDisplayMode(GLUT_DEPTH|GLUT_DOUBLE|GLUT_RGBA|GLUT_MULTISAMPLE);
 
 	// Set context
-	glutInitContextVersion (4, 4);
+	glutInitContextVersion (3, 3);
 	glutInitContextProfile (GLUT_CORE_PROFILE );
 
 	glutInitWindowPosition(100,100);
@@ -421,7 +443,7 @@ int main(int argc, char **argv) {
 //	Init GLEW
 	glewExperimental = GL_TRUE;
 	glewInit();
-	if (!glewIsSupported("GL_VERSION_4_4")) {
+	if (!glewIsSupported("GL_VERSION_3_3")) {
 		printf("OpenGL 3.3 not supported\n");
 		exit(1);
 	}
