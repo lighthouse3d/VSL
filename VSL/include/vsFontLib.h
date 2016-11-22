@@ -34,7 +34,11 @@
 #include <vector>
 #include <string>
 
+#ifdef __ANDROID_API__
+#include <GLES3/gl3.h>
+#else
 #include <GL/glew.h>
+#endif
 
 // include Resource Lib, from which it derives
 #include "vsResourceLib.h"

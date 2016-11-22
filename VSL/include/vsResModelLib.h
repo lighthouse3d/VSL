@@ -49,7 +49,11 @@
 #define __VSResModelLib__
 
 #ifdef _WIN32
+#ifdef _DEBUG
+#pragma comment(lib,"assimpd.lib")
+#else
 #pragma comment(lib,"assimp.lib")
+#endif
 #endif
 
 
@@ -58,12 +62,12 @@
 #include <map>
 #include <fstream>
 
+#ifdef __ANDROID_API__
+#include <GLES3/gl3.h>
+#else
 #include <GL/glew.h>
+#endif
 
-// Assimp include files. These three are usually needed.
-//#include <assimp/assimp.hpp>	
-//#include <assimp/aiPostProcess.h>
-//#include <assimp/aiScene.h>
 
 #include "assimp/Importer.hpp"	//OO version Header!
 #include "assimp/PostProcess.h"
@@ -80,6 +84,10 @@ public:
 	VSResModelLib();
 	~VSResModelLib();
 
+#ifdef __ANDROID_API__
+    static Assimp::Importer *s_Importer;
+	static void SetImporter(Assimp::Importer *imp);
+#endif
 	virtual void clone(VSResourceLib *res);
 	/** implementation of the superclass abstract method
 	  * \param filename the model's filename
@@ -94,7 +102,7 @@ public:
 	/// set a color component for a particular mesh
 	void setColor(unsigned int mesh, VSResourceLib::MaterialSemantics m, float *values);
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 
 	/// load and set a texture for the object
 	virtual void addTexture(unsigned int unit, std::string filename);
@@ -108,22 +116,47 @@ public:
 							GLenum textureType = GL_TEXTURE_2D);
 #endif
 
-//protected:
+public:
 
 	// A model can be made of many meshes. Each is stored
 	// in the following structure
-	struct MyMesh{
+	class MyMesh {
+
+	public:
 		GLuint vao;
 		GLuint texUnits[MAX_TEXTURES];
 		GLuint texTypes[MAX_TEXTURES];
 		GLuint uniformBlockIndex;
 		float transform[16];
 		int numIndices;
+		bool hasIndices;
 		unsigned int type;
 		struct Material mat;
-		unsigned int *indexes;
-		float *positions;
-		float *normals;
+		//unsigned int *indexes;
+		//float *positions;
+		//float *normals;
+
+		MyMesh() {
+			vao = 0;
+			numIndices = 0;
+			hasIndices = false;
+			type = GL_TRIANGLES;
+			float cD[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+			memcpy(mat.diffuse, cD, sizeof(float) * 4);
+			float cA[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+			memcpy(mat.ambient, cA, sizeof(float) * 4);
+			float cS[4] = { 0.0f, 0.0f, 0.0f ,1.0f };
+			memcpy(mat.specular, cS, sizeof(float) * 4);
+			float cE[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+			memcpy(mat.emissive, cE, sizeof(float) * 4);
+
+			mat.shininess = 128.0;
+			mat.texCount = 0;
+			//indexes = NULL;
+			//positions = NULL;
+			//normals = NULL;
+		}
+
 	};
 
 	struct HalfEdge {
@@ -133,18 +166,18 @@ public:
 	};
 
 	/// the mesh collection
-	std::vector<struct MyMesh> mMyMeshes;
+	std::vector<MyMesh> mMyMeshes;
 	
 private:
 	/// aux pre processed mesh collection
-	std::vector<struct MyMesh> pMyMeshesAux;
+	std::vector<MyMesh> pMyMeshesAux;
 
 	// the global Assimp scene object
 	const aiScene* pScene;
 
 	bool pUseAdjacency;
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 
 	// images / texture
 	// map image filenames to textureIds
@@ -154,6 +187,7 @@ private:
 	// AUX FUNCTIONS
 	bool loadTextures(const aiScene *scene, std::string prefix);
 #endif
+
 	void genVAOsAndUniformBuffer(const aiScene *sc);
 	void recursive_walk_for_matrices(const aiScene *sc, 
 						const aiNode* nd);

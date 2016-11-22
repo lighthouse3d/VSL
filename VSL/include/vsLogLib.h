@@ -56,8 +56,10 @@ public:
 	*/
 	void addMessage(std::string format, ...);
 
+#ifndef __ANDROID_API__
 	/// Writes the log to a file
 	void dumpToFile(std::string filename);
+#endif
 
 	/// returns a string with the logs contents
 	std::string dumpToString();

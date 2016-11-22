@@ -33,8 +33,12 @@
  * http://www.lighthouse3d.com/very-simple-libs
  *
  ---------------------------------------------------------------*/
-
 #include "vsResModelLib.h"
+
+#ifdef __ANDROID_API__
+Assimp::Importer *VSResModelLib::s_Importer = NULL;
+#endif
+
 
 
 
@@ -51,7 +55,7 @@ VSResModelLib::~VSResModelLib() {
 			
 		glDeleteVertexArrays(1,&(mMyMeshes[i].vao));
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if  defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 
 		for (int t = 0; t < MAX_TEXTURES; ++t ) {
 			glDeleteTextures(1,&(mMyMeshes[i].texUnits[t]));
@@ -61,6 +65,14 @@ VSResModelLib::~VSResModelLib() {
 	}
 	mMyMeshes.clear();
 }
+
+
+#ifdef __ANDROID_API__
+void
+VSResModelLib::SetImporter(Assimp::Importer *imp) {
+	s_Importer = imp;
+}
+#endif
 
 
 void
@@ -80,21 +92,25 @@ VSResModelLib::clone(VSResourceLib *res) {
 bool
 VSResModelLib::load(std::string filename) {
 
+#ifndef __ANDROID_API__
 	Assimp::Importer importer;
 
 	//check if file exists
 	std::ifstream fin(filename.c_str());
-	if(!fin.fail()) 
+	if(!fin.fail())
 		fin.close();
 	else {
-		VSLOG(sLogError, "Unable to open file %s", 
-							filename.c_str());
+		VSLOG(sLogError, "Unable to open file %s",
+			  filename.c_str());
 		return false;
 	}
-
-//	pScene = aiImportFile(filename.c_str(),aiProcessPreset_TargetRealtime_MaxQuality);
-	pScene = importer.ReadFile( filename, 
+	pScene = importer.ReadFile( filename,
 					aiProcessPreset_TargetRealtime_Quality);
+	//aiProcessPreset_TargetRealtime_MaxQuality
+#else
+	pScene = s_Importer->ReadFile( filename,
+								aiProcessPreset_TargetRealtime_Quality);
+#endif
 
 	// If the import failed, report it
 	if( !pScene) {
@@ -106,7 +122,8 @@ VSResModelLib::load(std::string filename) {
 	size_t index = filename.find_last_of("/\\");
 	std::string prefix = filename.substr(0, index+1);
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+
+#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 
 	pTextureIdMap.clear();
 	bool result = loadTextures(pScene, prefix);
@@ -168,7 +185,7 @@ VSResModelLib::load(std::string filename) {
 		mVSML->popMatrix(mVSML->AUX0);
 	}
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 	// clear texture map
 	pTextureIdMap.clear();
 	return result;
@@ -195,7 +212,7 @@ VSResModelLib::render () {
 		// set material
 		setMaterial(mMyMeshes[i].mat);
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 
 		// bind texture
 		for (unsigned int j = 0; j < VSResourceLib::MAX_TEXTURES; ++j) {
@@ -208,10 +225,13 @@ VSResModelLib::render () {
 #endif
 		// bind VAO
 		glBindVertexArray(mMyMeshes[i].vao);
-		glDrawElements(mMyMeshes[i].type, 
-			mMyMeshes[i].numIndices, GL_UNSIGNED_INT, 0);
+		if (mMyMeshes[i].hasIndices)
+			glDrawElements(mMyMeshes[i].type,
+				mMyMeshes[i].numIndices, GL_UNSIGNED_INT, 0);
+		else
+			glDrawArrays(mMyMeshes[i].type, 0, mMyMeshes[i].numIndices);
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 		for (unsigned int j = 0; j < VSResourceLib::MAX_TEXTURES; ++j) {
 			if (mMyMeshes[i].texUnits[j] != 0) {
 				glActiveTexture(GL_TEXTURE0 + j);
@@ -225,7 +245,7 @@ VSResModelLib::render () {
 	mVSML->popMatrix(VSMathLib::MODEL);
 }
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 
 // Load model textures
 bool 
@@ -256,7 +276,7 @@ VSResModelLib::loadTextures(const aiScene* scene,
 		}
 	}
 
-	int numTextures = pTextureIdMap.size();
+	int numTextures = (int)pTextureIdMap.size();
 
 	/* get iterator */
 	std::map<std::string, GLuint>::iterator itr = 
@@ -268,7 +288,11 @@ VSResModelLib::loadTextures(const aiScene* scene,
 		std::string filename = (*itr).first;  
 		filename = prefix + filename;
 		// save texture id for filename in map
-		(*itr).second = loadRGBATexture(filename, true,true);	  
+#ifdef __ANDROID_API__
+		(*itr).second = LoadTexture(filename);
+#else
+		(*itr).second = loadRGBATexture(filename, true,true);
+#endif
 		VSLOG(sLogInfo, "Texture %s loaded with name %d", 
 			filename.c_str(), (int)(*itr).second);
 	}
@@ -282,7 +306,7 @@ VSResModelLib::loadTextures(const aiScene* scene,
 void 
 VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 
-	struct MyMesh aMesh;
+	MyMesh aMesh;
 	struct Material aMat; 
 	GLuint buffer;
 	int totalTris = 0, totalVerts = 0;
@@ -309,7 +333,7 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 		faceArray = (unsigned int *)malloc(
 				sizeof(unsigned int) * mesh->mNumFaces * 3);
 
-		aMesh.indexes = faceArray;
+		aMesh.hasIndices = true;
 
 		unsigned int faceIndex = 0;
 
@@ -418,14 +442,6 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 		// buffer for vertex positions
 		if (mesh->HasPositions()) {
 
-			aMesh.positions = (float *) malloc(sizeof(float) * 3 * mesh->mNumVertices);
-			memcpy(aMesh.positions, mesh->mVertices, sizeof(float) * 3 * mesh->mNumVertices);
-
-			//glGenBuffers(1, &buffer);
-			//glBindBuffer(GL_ARRAY_BUFFER, buffer);
-			//glBufferData(GL_ARRAY_BUFFER, 160000000, NULL, GL_STATIC_DRAW);
-
-
 			glGenBuffers(1, &buffer);
 			glBindBuffer(GL_ARRAY_BUFFER, buffer);
 			glBufferData(GL_ARRAY_BUFFER, sizeof(float)*3*mesh->mNumVertices, 
@@ -439,9 +455,6 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 
 		// buffer for vertex normals
 		if (mesh->HasNormals()) {
-
-			aMesh.normals = (float *) malloc(sizeof(float) * 3 * mesh->mNumVertices);
-			memcpy(aMesh.normals, mesh->mNormals, sizeof(float) * 3 * mesh->mNumVertices);
 
 			glGenBuffers(1, &buffer);
 			glBindBuffer(GL_ARRAY_BUFFER, buffer);
@@ -511,7 +524,7 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 			
 		aiString texPath;	//contains filename of texture
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 		for (int j = 0; j < VSResourceLib::MAX_TEXTURES; ++j)
 			aMesh.texUnits[j] = 0;
 
@@ -527,6 +540,8 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 			aMesh.texUnits[0] = 0;
 			aMat.texCount = 0;
 		}
+#else
+        aMat.texCount = 0;
 #endif
 		float c[4];
 		set_float4(c, 0.8f, 0.8f, 0.8f, 1.0f);
@@ -661,14 +676,16 @@ VSResModelLib::recursive_walk_for_matrices(
 
 			if(sc->mMeshes[nd->mMeshes[n]]->mPrimitiveTypes == 4) {
 
-				struct MyMesh aMesh;
+				MyMesh aMesh;
 				memcpy(&aMesh, &(pMyMeshesAux[nd->mMeshes[n]]), 
 											sizeof (aMesh));
 				memcpy(aMesh.transform,mVSML->get(VSMathLib::AUX0), 
 											sizeof(float)*16);
+#ifndef __ANDROID_API__
 				if (pUseAdjacency)
 					aMesh.type = GL_TRIANGLES_ADJACENCY;
 				else
+#endif
 					aMesh.type = GL_TRIANGLES;
 				mMyMeshes.push_back(aMesh);
 			}
@@ -754,7 +771,7 @@ VSResModelLib::setMaterialColor(MaterialColors m) {
 	}	
 }
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 
 void 
 VSResModelLib::setTexture(unsigned int unit, unsigned int textureID, GLenum textureType) {
@@ -770,7 +787,12 @@ VSResModelLib::setTexture(unsigned int unit, unsigned int textureID, GLenum text
 void 
 VSResModelLib::addTexture(unsigned int unit, std::string filename) {
 
+#ifdef _VSL_TEXTURE_WITH_DEVIL
 	int textID = loadRGBATexture(filename, true);
+#endif
+#if defined(__ANDROID_API__)
+	int textID = LoadTexture(filename);
+#endif
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
 		mMyMeshes[i].texUnits[unit] = textID;
 		mMyMeshes[i].texTypes[unit] = GL_TEXTURE_2D;
@@ -784,13 +806,16 @@ VSResModelLib::addCubeMapTexture(unsigned int unit, std::string posX, std::strin
 									std::string posY, std::string negY, 
 									std::string posZ, std::string negZ) {
 
+#ifdef _VSL_TEXTURE_WITH_DEVIL
 	int textID = loadCubeMapTexture(posX, negX, posY, negY, posZ, negZ);
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
 		mMyMeshes[i].texUnits[unit] = textID;
 		mMyMeshes[i].texTypes[unit] = GL_TEXTURE_CUBE_MAP;
 		mMyMeshes[i].mat.texCount = 1;
 	}
+#endif
 }
+
 
 #endif
 

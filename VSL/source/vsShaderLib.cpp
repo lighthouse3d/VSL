@@ -37,16 +37,29 @@
 
 #include "vsShaderLib.h"
 
+
 // pre conditions are established with asserts
 // if having errors using the lib switch to Debug mode
 #include <assert.h>
 
+#ifdef __ANDROID_API__
+#include <android/log.h>
+AAssetManager *VSShaderLib::s_AssetManager = NULL;
+
+void
+VSShaderLib::SetAssetManager(AAssetManager *mgr) {
+	s_AssetManager = mgr;
+}
+#endif
+
 GLenum 
 VSShaderLib::spGLShaderTypes[VSShaderLib::COUNT_SHADER_TYPE] = {
-								GL_VERTEX_SHADER, 
+								GL_VERTEX_SHADER,
+#ifndef __ANDROID_API__
 								GL_GEOMETRY_SHADER,
 								GL_TESS_CONTROL_SHADER,
 								GL_TESS_EVALUATION_SHADER,
+#endif
 								GL_FRAGMENT_SHADER,
 								GL_COMPUTE_SHADER};
 
@@ -54,17 +67,18 @@ VSShaderLib::spGLShaderTypes[VSShaderLib::COUNT_SHADER_TYPE] = {
 std::string 
 VSShaderLib::spStringShaderTypes[VSShaderLib::COUNT_SHADER_TYPE] = {
 								"Vertex Shader",
+#ifndef __ANDROID_API__
 								"Geometry Shader",
 								"Tesselation Control Shader",
 								"Tesselation Evaluation Shader",
+#endif
 								"Fragment Shader",
 								"Compute Shader"};
 
 
 std::map<std::string, VSShaderLib::UniformBlock> VSShaderLib::spBlocks;
 
-
-int VSShaderLib::spBlockCount = 1;
+unsigned int VSShaderLib::spBlockCount = 1;
 
 
 VSShaderLib::VSShaderLib(): pProgram(0), pInited(false) {
@@ -100,7 +114,7 @@ void
 VSShaderLib::loadShader(VSShaderLib::ShaderType st, std::string fileName) {
 
 	// init should always be called first
-	assert(pInited == true);
+	assert(pInited);
 
 	char *s = NULL;
 
@@ -128,11 +142,13 @@ VSShaderLib::prepareProgram() {
 }
 
 
+#ifndef __ANDROID_API__
 void 
 VSShaderLib::setProgramOutput(int index, std::string name) {
 
 	glBindFragDataLocation(pProgram, index, name.c_str());
 }
+#endif
 
 
 GLint
@@ -172,7 +188,6 @@ VSShaderLib::setBlock(std::string name, void *value) {
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, spBlocks[name].size, value);
 		glBindBuffer(GL_UNIFORM_BUFFER,0);
 	}
-	
 }
 
 
@@ -193,15 +208,11 @@ VSShaderLib::setBlockUniform(std::string blockName,
 		finalUniName = uniformComposed;
 	else
 		return;
-//	if (!(spBlocks.count(blockName) && 
-//		   spBlocks[blockName].uniformOffsets.count(uniformName)))
-//		   return;
 
 	UniformBlock b;
 	b = spBlocks[blockName];
 
 	myBlockUniform bUni;
-//	bUni = b.uniformOffsets[uniformName];
 	bUni = b.uniformOffsets[finalUniName];
 	glBindBuffer(GL_UNIFORM_BUFFER, b.buffer);
 	glBufferSubData(GL_UNIFORM_BUFFER, bUni.offset, bUni.size, value);
@@ -235,8 +246,6 @@ VSShaderLib::setBlockUniformArrayElement(std::string blockName,
 void 
 VSShaderLib::setUniform(std::string name, int value) {
 
-//	assert(pUniforms.count(name) != 0);
-
 	int val = value;
 	myUniforms u = pUniforms[name];
 	glProgramUniform1i(pProgram, u.location, val);
@@ -247,8 +256,6 @@ VSShaderLib::setUniform(std::string name, int value) {
 void 
 VSShaderLib::setUniform(std::string name, float value) {
 
-//	assert(pUniforms.count(name) != 0);
-
 	float val = value;
 	myUniforms u = pUniforms[name];
 	glProgramUniform1f(pProgram, u.location, val);
@@ -257,8 +264,6 @@ VSShaderLib::setUniform(std::string name, float value) {
 
 void 
 VSShaderLib::setUniform(std::string name, void *value) {
-
-//	assert(pUniforms.count(name) != 0);
 
 	myUniforms u = pUniforms[name];
 	switch (u.type) {
@@ -276,7 +281,7 @@ VSShaderLib::setUniform(std::string name, void *value) {
 		case GL_FLOAT_VEC4:  
 			glProgramUniform4fv(pProgram, u.location, u.size, (const GLfloat *)value);
 			break;
-
+#ifndef __ANDROID_API__
 		// Doubles
 		case GL_DOUBLE: 
 			glProgramUniform1dv(pProgram, u.location, u.size, (const GLdouble *)value);
@@ -290,78 +295,83 @@ VSShaderLib::setUniform(std::string name, void *value) {
 		case GL_DOUBLE_VEC4:  
 			glProgramUniform4dv(pProgram, u.location, u.size, (const GLdouble *)value);
 			break;
-
+#endif
 		// Samplers, Ints and Bools
+#ifndef __ANDROID_API__
 		case GL_IMAGE_1D :
-		case GL_IMAGE_2D :
-		case GL_IMAGE_3D :
 		case GL_IMAGE_2D_RECT :
-		case GL_IMAGE_CUBE :
 		case GL_IMAGE_BUFFER :
 		case GL_IMAGE_1D_ARRAY :
-		case GL_IMAGE_2D_ARRAY :
 		case GL_IMAGE_CUBE_MAP_ARRAY :
 		case GL_IMAGE_2D_MULTISAMPLE :
 		case GL_IMAGE_2D_MULTISAMPLE_ARRAY :
 		case GL_INT_IMAGE_1D :
-		case GL_INT_IMAGE_2D :
-		case GL_INT_IMAGE_3D :
 		case GL_INT_IMAGE_2D_RECT :
-		case GL_INT_IMAGE_CUBE :
 		case GL_INT_IMAGE_BUFFER :
 		case GL_INT_IMAGE_1D_ARRAY :
-		case GL_INT_IMAGE_2D_ARRAY :
 		case GL_INT_IMAGE_CUBE_MAP_ARRAY :
 		case GL_INT_IMAGE_2D_MULTISAMPLE :
 		case GL_INT_IMAGE_2D_MULTISAMPLE_ARRAY :
 		case GL_UNSIGNED_INT_IMAGE_1D :
-		case GL_UNSIGNED_INT_IMAGE_2D :
-		case GL_UNSIGNED_INT_IMAGE_3D :
 		case GL_UNSIGNED_INT_IMAGE_2D_RECT :
-		case GL_UNSIGNED_INT_IMAGE_CUBE :
 		case GL_UNSIGNED_INT_IMAGE_BUFFER :
 		case GL_UNSIGNED_INT_IMAGE_1D_ARRAY :
-		case GL_UNSIGNED_INT_IMAGE_2D_ARRAY :
 		case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY :
 		case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE :
 		case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY :
+#endif
+		case GL_IMAGE_2D :
+		case GL_IMAGE_3D :
+		case GL_IMAGE_CUBE :
+		case GL_IMAGE_2D_ARRAY :
+		case GL_INT_IMAGE_2D :
+		case GL_INT_IMAGE_3D :
+		case GL_INT_IMAGE_CUBE :
+		case GL_INT_IMAGE_2D_ARRAY :
+		case GL_UNSIGNED_INT_IMAGE_2D :
+		case GL_UNSIGNED_INT_IMAGE_3D :
+		case GL_UNSIGNED_INT_IMAGE_CUBE :
+		case GL_UNSIGNED_INT_IMAGE_2D_ARRAY :
+
+#ifndef __ANDROID_API__
 		case GL_SAMPLER_1D:
-		case GL_SAMPLER_2D:
-		case GL_SAMPLER_3D:
-		case GL_SAMPLER_CUBE:
 		case GL_SAMPLER_1D_SHADOW:
-		case GL_SAMPLER_2D_SHADOW:
 		case GL_SAMPLER_1D_ARRAY:
-		case GL_SAMPLER_2D_ARRAY:
 		case GL_SAMPLER_1D_ARRAY_SHADOW:
-		case GL_SAMPLER_2D_ARRAY_SHADOW:
-		case GL_SAMPLER_2D_MULTISAMPLE:
 		case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-		case GL_SAMPLER_CUBE_SHADOW:
 		case GL_SAMPLER_BUFFER:
 		case GL_SAMPLER_2D_RECT:
 		case GL_SAMPLER_2D_RECT_SHADOW:
 		case GL_INT_SAMPLER_1D:
-		case GL_INT_SAMPLER_2D:
-		case GL_INT_SAMPLER_3D:
-		case GL_INT_SAMPLER_CUBE:
 		case GL_INT_SAMPLER_1D_ARRAY:
-		case GL_INT_SAMPLER_2D_ARRAY:
-		case GL_INT_SAMPLER_2D_MULTISAMPLE:
 		case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
 		case GL_INT_SAMPLER_BUFFER:
 		case GL_INT_SAMPLER_2D_RECT:
 		case GL_UNSIGNED_INT_SAMPLER_1D:
-		case GL_UNSIGNED_INT_SAMPLER_2D:
-		case GL_UNSIGNED_INT_SAMPLER_3D:
-		case GL_UNSIGNED_INT_SAMPLER_CUBE:
 		case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
-		case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
-		case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
 		case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
 		case GL_UNSIGNED_INT_SAMPLER_BUFFER:
 		case GL_UNSIGNED_INT_SAMPLER_2D_RECT:
-		case GL_BOOL:  
+#endif
+		case GL_SAMPLER_2D:
+		case GL_SAMPLER_3D:
+		case GL_SAMPLER_CUBE:
+		case GL_SAMPLER_2D_SHADOW:
+		case GL_SAMPLER_2D_ARRAY:
+		case GL_SAMPLER_2D_ARRAY_SHADOW:
+		case GL_SAMPLER_2D_MULTISAMPLE:
+		case GL_SAMPLER_CUBE_SHADOW:
+		case GL_INT_SAMPLER_2D:
+		case GL_INT_SAMPLER_3D:
+		case GL_INT_SAMPLER_CUBE:
+		case GL_INT_SAMPLER_2D_ARRAY:
+		case GL_INT_SAMPLER_2D_MULTISAMPLE:
+		case GL_UNSIGNED_INT_SAMPLER_2D:
+		case GL_UNSIGNED_INT_SAMPLER_3D:
+		case GL_UNSIGNED_INT_SAMPLER_CUBE:
+		case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+		case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
+		case GL_BOOL:
 		case GL_INT : 
 			glProgramUniform1iv(pProgram, u.location, u.size, (const GLint *)value);
 			break;
@@ -394,34 +404,35 @@ VSShaderLib::setUniform(std::string name, void *value) {
 
 		// Float Matrices
 		case GL_FLOAT_MAT2:
-			glProgramUniformMatrix2fv(pProgram, u.location, u.size, false, (const GLfloat *)value);
+			glProgramUniformMatrix2fv(pProgram, u.location, u.size, GL_FALSE, (const GLfloat *)value);
 			break;
 		case GL_FLOAT_MAT3:
-			glProgramUniformMatrix3fv(pProgram, u.location, u.size, false, (const GLfloat *)value);
+			glProgramUniformMatrix3fv(pProgram, u.location, u.size, GL_FALSE, (const GLfloat *)value);
 			break;
 		case GL_FLOAT_MAT4:
-			glProgramUniformMatrix4fv(pProgram, u.location, u.size, false, (const GLfloat *)value);
+			glProgramUniformMatrix4fv(pProgram, u.location, u.size, GL_FALSE, (const GLfloat *)value);
 			break;
 		case GL_FLOAT_MAT2x3:
-			glProgramUniformMatrix2x3fv(pProgram, u.location, u.size, false, (const GLfloat *)value);
+			glProgramUniformMatrix2x3fv(pProgram, u.location, u.size, GL_FALSE, (const GLfloat *)value);
 			break;
 		case GL_FLOAT_MAT2x4:
-			glProgramUniformMatrix2x4fv(pProgram, u.location, u.size, false, (const GLfloat *)value);
+			glProgramUniformMatrix2x4fv(pProgram, u.location, u.size, GL_FALSE, (const GLfloat *)value);
 			break;
 		case GL_FLOAT_MAT3x2:
-			glProgramUniformMatrix3x2fv(pProgram, u.location, u.size, false, (const GLfloat *)value);
+			glProgramUniformMatrix3x2fv(pProgram, u.location, u.size, GL_FALSE, (const GLfloat *)value);
 			break;
 		case GL_FLOAT_MAT3x4:
-			glProgramUniformMatrix3x4fv(pProgram, u.location, u.size, false, (const GLfloat *)value);
+			glProgramUniformMatrix3x4fv(pProgram, u.location, u.size, GL_FALSE, (const GLfloat *)value);
 			break;
 		case GL_FLOAT_MAT4x2:
-			glProgramUniformMatrix4x2fv(pProgram, u.location, u.size, false, (const GLfloat *)value);
+			glProgramUniformMatrix4x2fv(pProgram, u.location, u.size, GL_FALSE, (const GLfloat *)value);
 			break;
 		case GL_FLOAT_MAT4x3:
-			glProgramUniformMatrix4x3fv(pProgram, u.location, u.size, false, (const GLfloat *)value);
+			glProgramUniformMatrix4x3fv(pProgram, u.location, u.size, GL_FALSE, (const GLfloat *)value);
 			break;
 
-		// Double Matrices
+#ifndef __ANDROID_API__
+        // Double Matrices
 		case GL_DOUBLE_MAT2:
 			glProgramUniformMatrix2dv(pProgram, u.location, u.size, false, (const GLdouble *)value);
 			break;
@@ -449,6 +460,7 @@ VSShaderLib::setUniform(std::string name, void *value) {
 		case GL_DOUBLE_MAT4x3:
 			glProgramUniformMatrix4x3dv(pProgram, u.location, u.size, false, (const GLdouble *)value);
 			break;
+#endif
 	}
 }
 
@@ -467,7 +479,7 @@ VSShaderLib::getShaderInfoLog(VSShaderLib::ShaderType st) {
 
 		if (infologLength > 0)
 		{
-			infoLog = (char *)malloc(infologLength);
+			infoLog = (char *)malloc((size_t)infologLength);
 			glGetShaderInfoLog(pShader[st], infologLength, &charsWritten, infoLog);
 			if (charsWritten)
 				pResult = infoLog;
@@ -475,6 +487,8 @@ VSShaderLib::getShaderInfoLog(VSShaderLib::ShaderType st) {
 				pResult= "OK";
 			free(infoLog);
 		}
+		else
+			pResult="OK";
 	}
 	else
 		pResult = "Shader not loaded";
@@ -497,7 +511,7 @@ VSShaderLib::getProgramInfoLog() {
 
 		if (infologLength > 0)
 		{
-			infoLog = (char *)malloc(infologLength);
+			infoLog = (char *)malloc((size_t)infologLength);
 			glGetProgramInfoLog(pProgram, infologLength, &charsWritten, infoLog);
 			pResult = infoLog;
 			if (charsWritten)
@@ -562,7 +576,11 @@ VSShaderLib::getAllInfoLogs() {
 	for (int i = 0; i < VSShaderLib::COUNT_SHADER_TYPE; ++i) {
 		if (pShader[i]) {
 			getShaderInfoLog((VSShaderLib::ShaderType)i);
-			s += VSShaderLib::spStringShaderTypes[i] + ": " + pResult + "\n";
+			s.append(VSShaderLib::spStringShaderTypes[i]);
+			s.append(": ");
+			s.append(pResult);
+			s.append("\n");
+			//s += VSShaderLib::spStringShaderTypes[i] + ": " + pResult + "\n";
 		}
 	}
 
@@ -585,11 +603,12 @@ VSShaderLib::getAllInfoLogs() {
 char *
 VSShaderLib::textFileRead(std::string fileName) {
 
-
-	FILE *fp;
 	char *content = NULL;
 
-	int count=0;
+#ifndef __ANDROID_API__
+	FILE *fp;
+
+	size_t count=0;
 
 	if (fileName != "") {
 		fp = fopen(fileName.c_str(),"rt");
@@ -602,17 +621,28 @@ VSShaderLib::textFileRead(std::string fileName) {
 
 			if (count > 0) {
 				content = (char *)malloc(sizeof(char) * (count+1));
-				count = fread(content,sizeof(char),count,fp);
+				count = fread(content, sizeof(char), count, fp);
 				content[count] = '\0';
 			}
 			fclose(fp);
 		}
 	}
 	return content;
+#else
+	AAsset* asset = AAssetManager_open(s_AssetManager, fileName.c_str(), AASSET_MODE_UNKNOWN);
+	const char *loc = "VSShaderLib::readText";
+	if (NULL == asset) {
+		__android_log_print(ANDROID_LOG_ERROR, loc, "%s", "_ASSET_NOT_FOUND_");
+		return content;
+	}
+	size_t size = (size_t)AAsset_getLength(asset);
+	content = (char*) malloc (sizeof(char)*size);
+	AAsset_read (asset,content,size);
+	__android_log_print(ANDROID_LOG_DEBUG, loc, "%s", content);
+	AAsset_close(asset);
+	return content;
+#endif
 }
-
-
-
 
 
 void
@@ -622,12 +652,11 @@ VSShaderLib::addBlocks() {
 	int uniType, uniSize, uniOffset, uniMatStride, uniArrayStride, auxSize;
 	char *name, *name2;
 
-	UniformBlock block;
-
 	glGetProgramiv(pProgram, GL_ACTIVE_UNIFORM_BLOCKS, &count);
 
 	for (int i = 0; i < count; ++i) {
 		// Get buffers name
+		UniformBlock block;
 		glGetActiveUniformBlockiv(pProgram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &actualLen);
 		name = (char *)malloc(sizeof(char) * actualLen);
 		glGetActiveUniformBlockName(pProgram, i, actualLen, NULL, name);
@@ -638,207 +667,104 @@ VSShaderLib::addBlocks() {
 			block = spBlocks[name];
 		}
 
-		/*if (!spBlocks.count(name))*/ {
-			// Get buffers size
-			//block = spBlocks[name];
-			glGetActiveUniformBlockiv(pProgram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &dataSize);
-			//printf("DataSize:%d\n", dataSize);
+		glGetActiveUniformBlockiv(pProgram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &dataSize);
 
-			if (newBlock) {
-				glGenBuffers(1, &block.buffer);
-				glBindBuffer(GL_UNIFORM_BUFFER, block.buffer);
-				glBufferData(GL_UNIFORM_BUFFER, dataSize, NULL, GL_DYNAMIC_DRAW);
-				glUniformBlockBinding(pProgram, i, spBlockCount);
-				glBindBufferRange(GL_UNIFORM_BUFFER, spBlockCount, block.buffer, 0, dataSize);
-			}
-			else {
-				glBindBuffer(GL_UNIFORM_BUFFER, block.buffer);
-				glUniformBlockBinding(pProgram, i, block.bindingIndex);
-			}
-			glGetActiveUniformBlockiv(pProgram, i, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &activeUnif);
-
-			unsigned int *indices;
-			indices = (unsigned int *)malloc(sizeof(unsigned int) * activeUnif);
-			glGetActiveUniformBlockiv(pProgram, i, GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, (int *)indices);
-			
-			glGetProgramiv(pProgram, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniLength);
-			name2 = (char *)malloc(sizeof(char) * maxUniLength);
-
-			for (int k = 0; k < activeUnif; ++k) {
-		
-				myBlockUniform bUni;
-
-				glGetActiveUniformName(pProgram, indices[k], maxUniLength, &actualLen, name2);
-				glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_TYPE, &uniType);
-				glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_SIZE, &uniSize);
-				glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_OFFSET, &uniOffset);
-				glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_MATRIX_STRIDE, &uniMatStride);
-				glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_ARRAY_STRIDE, &uniArrayStride);
-			
-				if (uniArrayStride > 0)
-					auxSize = uniArrayStride * uniSize;
-				
-				else if (uniMatStride > 0) {
-
-					switch(uniType) {
-						case GL_FLOAT_MAT2:
-						case GL_FLOAT_MAT2x3:
-						case GL_FLOAT_MAT2x4:
-						case GL_DOUBLE_MAT2:
-						case GL_DOUBLE_MAT2x3:
-						case GL_DOUBLE_MAT2x4:
-							auxSize = 2 * uniMatStride;
-							break;
-						case GL_FLOAT_MAT3:
-						case GL_FLOAT_MAT3x2:
-						case GL_FLOAT_MAT3x4:
-						case GL_DOUBLE_MAT3:
-						case GL_DOUBLE_MAT3x2:
-						case GL_DOUBLE_MAT3x4:
-							auxSize = 3 * uniMatStride;
-							break;
-						case GL_FLOAT_MAT4:
-						case GL_FLOAT_MAT4x2:
-						case GL_FLOAT_MAT4x3:
-						case GL_DOUBLE_MAT4:
-						case GL_DOUBLE_MAT4x2:
-						case GL_DOUBLE_MAT4x3:
-							auxSize = 4 * uniMatStride;
-							break;
-					}
-				}
-				else
-					auxSize = typeSize(uniType);
-
-				bUni.offset = uniOffset;
-				bUni.type = uniType;
-				bUni.size = auxSize;
-				bUni.arrayStride = uniArrayStride;
-
-				block.uniformOffsets[name2] = bUni;
-
-
-			}
-			free(name2);
-			if (newBlock) {
-			block.size = dataSize;
-			block.bindingIndex = spBlockCount;
-			spBlockCount++;
-			}
-			spBlocks[name] = block;
+		if (newBlock) {
+			glGenBuffers(1, &block.buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, block.buffer);
+			glBufferData(GL_UNIFORM_BUFFER, dataSize, NULL, GL_DYNAMIC_DRAW);
+			glUniformBlockBinding(pProgram, i, spBlockCount);
+			glBindBufferRange(GL_UNIFORM_BUFFER, spBlockCount, block.buffer, 0, dataSize);
 		}
-		//else
-		//	glUniformBlockBinding(pProgram, i, spBlocks[name].bindingIndex);
+		else {
+			glBindBuffer(GL_UNIFORM_BUFFER, block.buffer);
+			glUniformBlockBinding(pProgram, i, block.bindingIndex);
+		}
+		glGetActiveUniformBlockiv(pProgram, i, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &activeUnif);
 
+		unsigned int *indices;
+		indices = (unsigned int *)malloc(sizeof(unsigned int) * activeUnif);
+		glGetActiveUniformBlockiv(pProgram, i, GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, (int *)indices);
+			
+		glGetProgramiv(pProgram, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniLength);
+		name2 = (char *)malloc(sizeof(char) * maxUniLength);
+
+		for (int k = 0; k < activeUnif; ++k) {
+		
+			myBlockUniform bUni;
+
+			GLenum type;
+
+			glGetActiveUniform(pProgram, indices[k], maxUniLength, &actualLen, &uniSize, &type, name2);
+
+			glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_TYPE, &uniType);
+			glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_SIZE, &uniSize);
+			glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_OFFSET, &uniOffset);
+			glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_MATRIX_STRIDE, &uniMatStride);
+			glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_ARRAY_STRIDE, &uniArrayStride);
+			
+			if (uniArrayStride > 0)
+				auxSize = uniArrayStride * uniSize;
+				
+			else if (uniMatStride > 0) {
+
+				switch (uniType) {
+				case GL_FLOAT_MAT2:
+				case GL_FLOAT_MAT2x3:
+				case GL_FLOAT_MAT2x4:
+#ifndef __ANDROID_API__
+				case GL_DOUBLE_MAT2:
+				case GL_DOUBLE_MAT2x3:
+				case GL_DOUBLE_MAT2x4:
+					auxSize = 2 * uniMatStride;
+					break;
+#endif
+				case GL_FLOAT_MAT3:
+				case GL_FLOAT_MAT3x2:
+				case GL_FLOAT_MAT3x4:
+#ifndef __ANDROID_API__
+				case GL_DOUBLE_MAT3:
+				case GL_DOUBLE_MAT3x2:
+				case GL_DOUBLE_MAT3x4:
+#endif
+					auxSize = 3 * uniMatStride;
+					break;
+				case GL_FLOAT_MAT4:
+				case GL_FLOAT_MAT4x2:
+				case GL_FLOAT_MAT4x3:
+#ifndef __ANDROID_API__
+				case GL_DOUBLE_MAT4:
+				case GL_DOUBLE_MAT4x2:
+				case GL_DOUBLE_MAT4x3:
+#endif
+					auxSize = 4 * uniMatStride;
+					break;
+				}
+			}
+			else
+				auxSize = typeSize(uniType);
+
+			bUni.offset = uniOffset;
+			bUni.type = uniType;
+			bUni.size = auxSize;
+			bUni.arrayStride = uniArrayStride;
+
+			block.uniformOffsets[name2] = bUni;
+
+
+		}
+		free(name2);
+		if (newBlock) {
+		block.size = dataSize;
+		block.bindingIndex = spBlockCount;
+		spBlockCount++;
+		}
+		spBlocks[name] = block;
 	}
-
 }
-//void
-//VSShaderLib::addBlocks() {
-//
-//	int count, dataSize, actualLen, activeUnif, maxUniLength;
-//	int uniType, uniSize, uniOffset, uniMatStride, uniArrayStride, auxSize;
-//	char *name, *name2;
-//
-//	UniformBlock block;
-//
-//	glGetProgramiv(pProgram, GL_ACTIVE_UNIFORM_BLOCKS, &count);
-//
-//	for (int i = 0; i < count; ++i) {
-//		// Get buffers name
-//		glGetActiveUniformBlockiv(pProgram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &actualLen);
-//		name = (char *)malloc(sizeof(char) * actualLen);
-//		glGetActiveUniformBlockName(pProgram, i, actualLen, NULL, name);
-//
-//		/*if (!spBlocks.count(name))*/ {
-//			// Get buffers size
-//			block = spBlocks[name];
-//			glGetActiveUniformBlockiv(pProgram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &dataSize);
-//			//printf("DataSize:%d\n", dataSize);
-//			glGenBuffers(1, &block.buffer);
-//			glBindBuffer(GL_UNIFORM_BUFFER, block.buffer);
-//			glBufferData(GL_UNIFORM_BUFFER, dataSize, NULL, GL_DYNAMIC_DRAW);
-//			glUniformBlockBinding(pProgram, i, spBlockCount);
-//			glBindBufferRange(GL_UNIFORM_BUFFER, spBlockCount, block.buffer, 0, dataSize);
-//
-//			glGetActiveUniformBlockiv(pProgram, i, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &activeUnif);
-//
-//			unsigned int *indices;
-//			indices = (unsigned int *)malloc(sizeof(unsigned int) * activeUnif);
-//			glGetActiveUniformBlockiv(pProgram, i, GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, (int *)indices);
-//			
-//			glGetProgramiv(pProgram, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniLength);
-//			name2 = (char *)malloc(sizeof(char) * maxUniLength);
-//
-//			for (int k = 0; k < activeUnif; ++k) {
-//		
-//				myBlockUniform bUni;
-//
-//				glGetActiveUniformName(pProgram, indices[k], maxUniLength, &actualLen, name2);
-//				glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_TYPE, &uniType);
-//				glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_SIZE, &uniSize);
-//				glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_OFFSET, &uniOffset);
-//				glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_MATRIX_STRIDE, &uniMatStride);
-//				glGetActiveUniformsiv(pProgram, 1, &indices[k], GL_UNIFORM_ARRAY_STRIDE, &uniArrayStride);
-//			
-//				if (uniArrayStride > 0)
-//					auxSize = uniArrayStride * uniSize;
-//				
-//				else if (uniMatStride > 0) {
-//
-//					switch(uniType) {
-//						case GL_FLOAT_MAT2:
-//						case GL_FLOAT_MAT2x3:
-//						case GL_FLOAT_MAT2x4:
-//						case GL_DOUBLE_MAT2:
-//						case GL_DOUBLE_MAT2x3:
-//						case GL_DOUBLE_MAT2x4:
-//							auxSize = 2 * uniMatStride;
-//							break;
-//						case GL_FLOAT_MAT3:
-//						case GL_FLOAT_MAT3x2:
-//						case GL_FLOAT_MAT3x4:
-//						case GL_DOUBLE_MAT3:
-//						case GL_DOUBLE_MAT3x2:
-//						case GL_DOUBLE_MAT3x4:
-//							auxSize = 3 * uniMatStride;
-//							break;
-//						case GL_FLOAT_MAT4:
-//						case GL_FLOAT_MAT4x2:
-//						case GL_FLOAT_MAT4x3:
-//						case GL_DOUBLE_MAT4:
-//						case GL_DOUBLE_MAT4x2:
-//						case GL_DOUBLE_MAT4x3:
-//							auxSize = 4 * uniMatStride;
-//							break;
-//					}
-//				}
-//				else
-//					auxSize = typeSize(uniType);
-//
-//				bUni.offset = uniOffset;
-//				bUni.type = uniType;
-//				bUni.size = auxSize;
-//				bUni.arrayStride = uniArrayStride;
-//
-//				block.uniformOffsets[name2] = bUni;
-//
-//
-//			}
-//			free(name2);
-//
-//			block.size = dataSize;
-//			block.bindingIndex = spBlockCount;
-//			spBlocks[name] = block;
-//			spBlockCount++;
-//		}
-//		//else
-//			glUniformBlockBinding(pProgram, i, spBlocks[name].bindingIndex);
-//
-//	}
-//
-//}
-void 
+
+
+void
 VSShaderLib::addUniforms() {
 
 	int count;
@@ -902,6 +828,7 @@ VSShaderLib::typeSize(int type) {
 			s = sizeof(float)*4;
 			break;
 
+#ifndef __ANDROID_API__
 		// Doubles
 		case GL_DOUBLE: 
 			s = sizeof(double);
@@ -915,46 +842,84 @@ VSShaderLib::typeSize(int type) {
 		case GL_DOUBLE_VEC4:  
 			s = sizeof(double) * 4;
 			break;
-
+#endif
 		// Samplers, Ints and Bools
-		case GL_SAMPLER_1D:
-		case GL_SAMPLER_2D:
-		case GL_SAMPLER_3D:
-		case GL_SAMPLER_CUBE:
+#ifndef __ANDROID_API__
+		case GL_IMAGE_1D :
+		case GL_IMAGE_2D_RECT :
+		case GL_IMAGE_BUFFER :
+		case GL_IMAGE_1D_ARRAY :
+		case GL_IMAGE_CUBE_MAP_ARRAY :
+		case GL_IMAGE_2D_MULTISAMPLE :
+		case GL_IMAGE_2D_MULTISAMPLE_ARRAY :
+		case GL_INT_IMAGE_1D :
+		case GL_INT_IMAGE_2D_RECT :
+		case GL_INT_IMAGE_BUFFER :
+		case GL_INT_IMAGE_1D_ARRAY :
+		case GL_INT_IMAGE_CUBE_MAP_ARRAY :
+		case GL_INT_IMAGE_2D_MULTISAMPLE :
+		case GL_INT_IMAGE_2D_MULTISAMPLE_ARRAY :
+		case GL_UNSIGNED_INT_IMAGE_1D :
+		case GL_UNSIGNED_INT_IMAGE_2D_RECT :
+		case GL_UNSIGNED_INT_IMAGE_BUFFER :
+		case GL_UNSIGNED_INT_IMAGE_1D_ARRAY :
+		case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY :
+		case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE :
+		case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY :
+#endif
+		case GL_IMAGE_2D :
+		case GL_IMAGE_3D :
+		case GL_IMAGE_CUBE :
+		case GL_IMAGE_2D_ARRAY :
+		case GL_INT_IMAGE_2D :
+		case GL_INT_IMAGE_3D :
+		case GL_INT_IMAGE_CUBE :
+		case GL_INT_IMAGE_2D_ARRAY :
+		case GL_UNSIGNED_INT_IMAGE_2D :
+		case GL_UNSIGNED_INT_IMAGE_3D :
+		case GL_UNSIGNED_INT_IMAGE_CUBE :
+		case GL_UNSIGNED_INT_IMAGE_2D_ARRAY :
+
+#ifndef __ANDROID_API__
+			case GL_SAMPLER_1D:
 		case GL_SAMPLER_1D_SHADOW:
-		case GL_SAMPLER_2D_SHADOW:
 		case GL_SAMPLER_1D_ARRAY:
-		case GL_SAMPLER_2D_ARRAY:
 		case GL_SAMPLER_1D_ARRAY_SHADOW:
-		case GL_SAMPLER_2D_ARRAY_SHADOW:
-		case GL_SAMPLER_2D_MULTISAMPLE:
 		case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-		case GL_SAMPLER_CUBE_SHADOW:
 		case GL_SAMPLER_BUFFER:
 		case GL_SAMPLER_2D_RECT:
 		case GL_SAMPLER_2D_RECT_SHADOW:
 		case GL_INT_SAMPLER_1D:
-		case GL_INT_SAMPLER_2D:
-		case GL_INT_SAMPLER_3D:
-		case GL_INT_SAMPLER_CUBE:
 		case GL_INT_SAMPLER_1D_ARRAY:
-		case GL_INT_SAMPLER_2D_ARRAY:
-		case GL_INT_SAMPLER_2D_MULTISAMPLE:
 		case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
 		case GL_INT_SAMPLER_BUFFER:
 		case GL_INT_SAMPLER_2D_RECT:
 		case GL_UNSIGNED_INT_SAMPLER_1D:
-		case GL_UNSIGNED_INT_SAMPLER_2D:
-		case GL_UNSIGNED_INT_SAMPLER_3D:
-		case GL_UNSIGNED_INT_SAMPLER_CUBE:
 		case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
-		case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
-		case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
 		case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
 		case GL_UNSIGNED_INT_SAMPLER_BUFFER:
 		case GL_UNSIGNED_INT_SAMPLER_2D_RECT:
-		case GL_BOOL:  
-		case GL_INT : 
+#endif
+		case GL_SAMPLER_2D:
+		case GL_SAMPLER_3D:
+		case GL_SAMPLER_CUBE:
+		case GL_SAMPLER_2D_SHADOW:
+		case GL_SAMPLER_2D_ARRAY:
+		case GL_SAMPLER_2D_ARRAY_SHADOW:
+		case GL_SAMPLER_2D_MULTISAMPLE:
+		case GL_SAMPLER_CUBE_SHADOW:
+		case GL_INT_SAMPLER_2D:
+		case GL_INT_SAMPLER_3D:
+		case GL_INT_SAMPLER_CUBE:
+		case GL_INT_SAMPLER_2D_ARRAY:
+		case GL_INT_SAMPLER_2D_MULTISAMPLE:
+		case GL_UNSIGNED_INT_SAMPLER_2D:
+		case GL_UNSIGNED_INT_SAMPLER_3D:
+		case GL_UNSIGNED_INT_SAMPLER_CUBE:
+		case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+		case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
+		case GL_BOOL:
+		case GL_INT :
 			s = sizeof(int);
 			break;
 		case GL_BOOL_VEC2:
@@ -1012,7 +977,7 @@ VSShaderLib::typeSize(int type) {
 		case GL_FLOAT_MAT4x3:
 			s = sizeof(float) * 12;
 			break;
-
+#ifndef __ANDROID_API__
 		// Double Matrices
 		case GL_DOUBLE_MAT2:
 			s = sizeof(double) * 4;
@@ -1041,6 +1006,7 @@ VSShaderLib::typeSize(int type) {
 		case GL_DOUBLE_MAT4x3:
 			s = sizeof(double) * 12;
 			break;
+#endif
 		default: return 0;
 	}
 	return s;

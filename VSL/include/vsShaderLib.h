@@ -39,8 +39,14 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <GL/glew.h>
 
+#ifdef __ANDROID_API__
+#include <GLES3/gl31.h>
+#include <android/asset_manager.h>
+
+#else
+#include <GL/glew.h>
+#endif
 
 class VSShaderLib
 {
@@ -62,9 +68,11 @@ public:
 	/// Types of Shaders
 	enum ShaderType {
 		VERTEX_SHADER,
+#ifndef __ANDROID_API__
 		GEOMETRY_SHADER,
 		TESS_CONTROL_SHADER,
 		TESS_EVAL_SHADER,
+#endif
 		FRAGMENT_SHADER,
 		COMPUTE_SHADER,
 		COUNT_SHADER_TYPE
@@ -75,6 +83,11 @@ public:
 
 	VSShaderLib();
 	~VSShaderLib();
+
+#ifdef __ANDROID_API__
+	static AAssetManager *s_AssetManager;
+	static void SetAssetManager(AAssetManager *mgr);
+#endif
 
 	/** Init should be called for every shader instance
 	  * prior to any other function
@@ -88,6 +101,7 @@ public:
 	*/
 	void loadShader(VSShaderLib::ShaderType st, std::string fileName);
 
+#ifndef __ANDROID_API__
 	/** bind a user-defined varying out variable to a 
 	  * fragment shader color number
 	  * Note: linking is required for this operation to take effect
@@ -97,7 +111,7 @@ public:
 	  * \param the name of the fragment's shader variable
 	*/
 	void setProgramOutput(int index, std::string name);
-
+#endif
 	/** returns the fragment shader color number bound to 
 	  * a user-defined varying out variable
 	  * 
@@ -202,7 +216,7 @@ protected:
 
 
 	/// blockCount is used to assign binding indexes
-	static int spBlockCount;
+	static unsigned int spBlockCount;
 
 	/// Stores info on all blocks found
 	static std::map<std::string, UniformBlock> spBlocks;

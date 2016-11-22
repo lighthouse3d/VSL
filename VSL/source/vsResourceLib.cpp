@@ -64,7 +64,7 @@ float VSResourceLib::Colors[24][10] =
 VSLogLib VSResourceLib::sLogError, VSResourceLib::sLogInfo;
 std::string VSResourceLib::sMaterialBlockName = "";
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+
 GLenum VSResourceLib::faceTarget[6] = {
 		GL_TEXTURE_CUBE_MAP_POSITIVE_X,
 		GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -73,7 +73,7 @@ GLenum VSResourceLib::faceTarget[6] = {
 		GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
 		GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
 	};
-#endif
+
 
 VSResourceLib::VSResourceLib(): mScaleToUnitCube(1.0), bbVAO(0), bbInit(false)
 {
@@ -85,7 +85,6 @@ VSResourceLib::VSResourceLib(): mScaleToUnitCube(1.0), bbVAO(0), bbInit(false)
 	ilInit(); 
 	ilEnable(IL_ORIGIN_SET);
 	ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
-
 #endif
 }
 
@@ -250,7 +249,7 @@ VSResourceLib::getInfo() {
 	return(sLogInfo.dumpToString());
 }
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 
 // helper function for derived classes
 // loads an image and defines an 8-bit RGBA texture
@@ -258,6 +257,10 @@ unsigned int
 VSResourceLib::loadRGBATexture(std::string filename, 
 						bool mipmap, bool compress, 
 						GLenum aFilter, GLenum aRepMode) {
+
+#ifdef __ANDROID_API__
+	return LoadTexture(filename);
+#else
 
 	ILboolean success;
 	unsigned int imageID;
@@ -356,6 +359,7 @@ VSResourceLib::loadRGBATexture(std::string filename,
 
 
 	return textureID;
+#endif
 }
 
 
@@ -366,6 +370,10 @@ VSResourceLib::loadCubeMapTexture(	std::string posX, std::string negX,
 									std::string posY, std::string negY, 
 									std::string posZ, std::string negZ) {
 
+#ifdef __ANDROID_API__
+    // todo
+	return 0;
+#else
 	ILboolean success;
 	unsigned int imageID;
 	GLuint textureID = 0;
@@ -431,6 +439,8 @@ VSResourceLib::loadCubeMapTexture(	std::string posX, std::string negX,
 	// add information to the log
 
 	return textureID;
+
+#endif
 }
 
 #endif

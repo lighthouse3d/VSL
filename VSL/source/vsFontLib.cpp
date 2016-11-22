@@ -12,9 +12,9 @@ http://www.lighthouse3d.com/very-simple-libs
 
 #ifdef _WIN32 
 #ifdef _DEBUG
-#pragma comment(lib,"tinyxmld.lib")
+#pragma comment(lib,"tinyxmlSTLd.lib")
 #else
-#pragma comment(lib, "tinyxml.lib")
+#pragma comment(lib, "tinyxmlSTL.lib")
 #endif
 #endif
 
@@ -70,7 +70,7 @@ VSFontLib::genSentence()
 	}
 	// if not create a new slot
 	else {
-		index = mSentences.size();
+		index = (int)mSentences.size();
 		// add a slot
 		mSentences.push_back(aSentence);
 	}
@@ -113,7 +113,7 @@ VSFontLib::load(std::string fontName)
 		return false;
 	}
 	
-	mFontTex = loadRGBATexture(s);
+	mFontTex = VSResourceLib::loadRGBATexture(s);
 
 	s = fontName + ".xml";
 	TiXmlDocument doc(s.c_str());
@@ -239,7 +239,7 @@ VSFontLib::prepareSentence(unsigned int index, std::string sentence)
 	mSentences[index].clear();
 
 	// allocate temporary arrays for vertex and texture coordinates
-	int size = sentence.length();
+	int size = (int)sentence.length();
 	positions = (float *)malloc(sizeof(float) * size * 6 * 3);
 	texCoords = (float *)malloc(sizeof(float) * size * 6 * 2);
 

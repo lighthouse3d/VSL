@@ -93,7 +93,7 @@ VSProfileLib::VSProfileLib(std::string name, bool profileGL) {
 		sLevels[sCurrLevel].cursor = -1;
 		createNewSection(name, w, profileGL);
 		// store the size of the largest section name
-		int aux = name.size() ;
+		int aux = (int)name.size() ;
 		if (aux > sDisp)
 			sDisp = aux;
 		sTotalLevels++;
@@ -108,7 +108,7 @@ VSProfileLib::VSProfileLib(std::string name, bool profileGL) {
 			createNewSection(name, w, profileGL);
 			// store the size of the largest section name
 			// for report formatting purposes
-			int aux = name.size() ;
+			int aux = (int)name.size() ;
 			if (aux > sDisp)
 				sDisp = aux;
 		}
@@ -165,7 +165,7 @@ int VSProfileLib::searchSection(std::string &name) {
 
 	int i,max,par;
 
-	max = sLevels[sCurrLevel].sec.size();
+	max = (int)sLevels[sCurrLevel].sec.size();
 	par = (sCurrLevel==0 ? -1 : sLevels[sCurrLevel-1].cursor);
 
 	for(i=0;i<max;i++) {
@@ -283,7 +283,7 @@ VSProfileLib::DumpLevels(int l, int p, pTime calls) {
 	char s2[2000];
 	section *sec;
 
-	siz = sLevels[l].sec.size();
+	siz = (int)sLevels[l].sec.size();
 
 	for(int cur = 0; cur < siz; ++cur) {
 		sec = &(sLevels[l].sec[cur]);

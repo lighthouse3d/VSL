@@ -52,22 +52,21 @@
 #include <fstream>
 
 
+#ifdef __ANDROID_API__
+#include <GLES3/gl3.h>
+#include <textureLoader.h>
+
+#else
 #include <GL/glew.h>
-
-#define _VSL_TEXTURE_WITH_DEVIL
-
-
-#ifdef _VSL_TEXTURE_WITH_DEVIL
-// include DevIL for image loading
-#include <IL/il.h>
 #endif
 
 #ifdef _WIN32
-#pragma comment(lib,"glew32.lib")
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#define _VSL_TEXTURE_WITH_DEVIL
+#include <IL/il.h>
 #pragma comment(lib,"devil.lib")
+#pragma comment(lib,"glew32.lib")
 #endif
-#endif
+
 
 // Include other VSL
 // vsMathLib is required for rendering and matrix manipulation
@@ -152,7 +151,7 @@ public:
 	/// render the resource
 	virtual void render() = 0;
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 	/// virtual function to be implemented in derived classes
 	/// assigns a texture (from an image) to a unit
 	virtual void addTexture(unsigned int unit, std::string filename) {};
@@ -163,6 +162,12 @@ public:
 	virtual void setTexture(unsigned int unit, unsigned int textureID,
 							GLenum textureType = GL_TEXTURE_2D) {};
 
+	static unsigned int loadRGBATexture(std::string filename, bool mipmap = true,
+										bool compress = false,
+										GLenum aFilter = GL_LINEAR, GLenum aRepMode = GL_REPEAT);
+	static unsigned int loadCubeMapTexture(	std::string posX, std::string negX,
+											   std::string posY, std::string negY,
+											   std::string posZ, std::string negZ);
 #endif
 	/// const to ease future upgrades
 	static const int MAX_TEXTURES = 8;
@@ -185,16 +190,7 @@ public:
 	/// note: may not apply to all subclasses
 	float getScaleForUnitCube();
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
-	/// helper function for derived classes
-	static unsigned int loadRGBATexture(std::string filename, bool mipmap = true,
-					bool compress = false,
-					GLenum aFilter = GL_LINEAR, GLenum aRepMode = GL_REPEAT);
-	static unsigned int loadCubeMapTexture(	std::string posX, std::string negX, 
-									std::string posY, std::string negY, 
-									std::string posZ, std::string negZ);
 	static GLenum faceTarget[6];
-#endif
 
 	virtual void renderBB();
 

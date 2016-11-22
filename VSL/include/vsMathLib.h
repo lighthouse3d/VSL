@@ -53,7 +53,12 @@
 
 #include <vector>
 #include <string>
+
+#ifdef __ANDROID_API__
+#include <GLES3/gl3.h>
+#else
 #include <GL/glew.h>
+#endif
 
 
 class VSMathLib {
@@ -256,6 +261,13 @@ class VSMathLib {
 		void frustum(float left, float right, float bottom, float top, 
 						float nearp, float farp);
 
+		/** Inverts the named matrix
+		  *
+		  * \param aType any value from MatrixTypes
+		*/
+		void invert(MatrixTypes aType);
+
+
 		/** Similar to glGet
 		  *
 		  * \param aType any value from MatrixTypes
@@ -268,6 +280,7 @@ class VSMathLib {
 		  * \param aType any value from ComputedMatrixTypes
 		  * \returns pointer to the matrix (float[16] or float[9])
 		*/
+
 		float *get(ComputedMatrixTypes aType);
 
 		/** Updates either the buffer or the uniform variables 
@@ -307,6 +320,14 @@ class VSMathLib {
 		  * \param res a float[4] res = M * point
 		*/
 		void multMatrixPoint(ComputedMatrixTypes aType, float *point, float *res);
+
+		/** Computes the multiplication of a point and a matrix
+		*
+		* \param aType any value from MatrixTypes
+		* \param point a float[4] representing a point
+		* \param res a float[4] res = point * M
+		*/
+		void multPointMatrix(float *point, MatrixTypes aType, float *res);
 
 		/** vector cross product res = a x b
 		  * Note: memory for the result must be allocatted by the caller
@@ -348,7 +369,7 @@ class VSMathLib {
 		/// Using uniform blocks?
 		bool mBlocks;
 
-		/// Matrix stacks for all matrix types
+		/// Matrix stacks for each matrix type
 		std::vector<float *> mMatrixStack[COUNT_MATRICES];
 
 		/// The storage for matrices

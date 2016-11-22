@@ -36,6 +36,7 @@ VSLogLib::clear() {
 	pLogVector.clear();
 }
 
+
 // adds a message, printf style
 void
 VSLogLib::addMessage(std::string s, ...) {
@@ -51,6 +52,8 @@ VSLogLib::addMessage(std::string s, ...) {
 		pLogVector.push_back(pAux);
 }
 
+
+#ifndef __ANDROID_API__
 // dumps the log contents to a file
 void 
 VSLogLib::dumpToFile(std::string filename) {
@@ -63,6 +66,8 @@ VSLogLib::dumpToFile(std::string filename) {
 	}
 	file.close();
 }
+#endif
+
 
 // dumps the log contents to a string
 std::string
