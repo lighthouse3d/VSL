@@ -1,9 +1,9 @@
 /** ----------------------------------------------------------
- * \class VSResModelLib
+ * \class VSModelLib
  *
  * Lighthouse3D
  *
- * VSResModelLib - Very Simple Resource Model Library
+ * VSModelLib - Very Simple Resource Model Library
  *
  * \version 0.4
  *		Added Materials from teapots.c
@@ -77,12 +77,19 @@
 #include "vsResourceLib.h"
 
 
-class VSResModelLib : public VSResourceLib{
+class VSModelLib : public VSResourceLib{
 
 public:
 
-	VSResModelLib();
-	~VSResModelLib();
+	enum {
+		NORMAL = 1,
+		TANGENT = 2,
+		BITANGENT = 4,
+		TEXCOORD = 8
+	} Mode;
+
+	VSModelLib();
+	~VSModelLib();
 
 #ifdef __ANDROID_API__
     static Assimp::Importer *s_Importer;
@@ -92,11 +99,20 @@ public:
 	/** implementation of the superclass abstract method
 	  * \param filename the model's filename
 	*/
+
+	/** defines what buffers to generate
+	* \param mode Bitwise OR of masks that indicate the buffers to be generated (see enum Mode)
+	*/
+	void setGenerationMode(int mode);
+	int getGenerationMode();
+
 	virtual bool load(std::string filename);
 	/// implementation of the superclass abstract method
 	virtual void render();
 	/// set a predefined material
 	void setMaterialColor(MaterialColors m);
+	/// set a color component for all meshes
+	void setColor(VSResourceLib::MaterialSemantics m, float r, float g, float b, float a);
 	/// set a color component for all meshes
 	void setColor(VSResourceLib::MaterialSemantics m, float *values);
 	/// set a color component for a particular mesh
@@ -123,7 +139,7 @@ public:
 	class MyMesh {
 
 	public:
-		GLuint vao;
+		GLuint vao, vboPos, vboNormal, vboTexCoord, vboTangent, vboBitangent, vboIndices;
 		GLuint texUnits[MAX_TEXTURES];
 		GLuint texTypes[MAX_TEXTURES];
 		GLuint uniformBlockIndex;
@@ -137,7 +153,7 @@ public:
 		//float *normals;
 
 		MyMesh() {
-			vao = 0;
+			vao = 0; vboPos = 0; vboNormal = 0; vboTexCoord = 0; vboTangent = 0; vboBitangent = 0; vboIndices = 0;
 			numIndices = 0;
 			hasIndices = false;
 			type = GL_TRIANGLES;
@@ -168,12 +184,17 @@ public:
 	/// the mesh collection
 	std::vector<MyMesh> mMyMeshes;
 	
+
+protected:
+	void buildVAO(MyMesh &m, size_t nump, float *p, float *n, float *tc, float *tang, float *bitan, size_t numInd, unsigned int *indices);
+	int mFlagMode;
+
 private:
 	/// aux pre processed mesh collection
-	std::vector<MyMesh> pMyMeshesAux;
+	std::vector<MyMesh> mMyMeshesAux;
 
 	// the global Assimp scene object
-	const aiScene* pScene;
+	const aiScene* mScene;
 
 	bool pUseAdjacency;
 
@@ -182,7 +203,7 @@ private:
 	// images / texture
 	// map image filenames to textureIds
 	// pointer to texture Array
-	std::map<std::string, GLuint> pTextureIdMap;	
+	std::map<std::string, GLuint> mTextureIdMap;	
 
 	// AUX FUNCTIONS
 	bool loadTextures(const aiScene *scene, std::string prefix);

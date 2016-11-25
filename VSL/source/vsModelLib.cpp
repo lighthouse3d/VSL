@@ -1,9 +1,9 @@
 /** ----------------------------------------------------------
- * \class VSResModelLib
+ * \class VSModelLib
  *
  * Lighthouse3D
  *
- * VSResModelLib - Very Simple Resource Model Library
+ * VSModelLib - Very Simple Resource Model Library
  *
  * \version 0.2.0
  *		Added cubemap textures
@@ -33,7 +33,7 @@
  * http://www.lighthouse3d.com/very-simple-libs
  *
  ---------------------------------------------------------------*/
-#include "vsResModelLib.h"
+#include "vsModelLib.h"
 
 #ifdef __ANDROID_API__
 Assimp::Importer *VSResModelLib::s_Importer = NULL;
@@ -42,18 +42,24 @@ Assimp::Importer *VSResModelLib::s_Importer = NULL;
 
 
 
-VSResModelLib::VSResModelLib():pScene(0), pUseAdjacency(false)
+VSModelLib::VSModelLib():mScene(0), pUseAdjacency(false)
 {
 	mMyMeshes.reserve(10);
-	pMyMeshesAux.reserve(10);
+	mMyMeshesAux.reserve(10);
+	mFlagMode = NORMAL | TEXCOORD;
 }
 
 
-VSResModelLib::~VSResModelLib() {
+VSModelLib::~VSModelLib() {
 
-	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
-			
+	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {	
 		glDeleteVertexArrays(1,&(mMyMeshes[i].vao));
+		glDeleteBuffers(1, &(mMyMeshes[i].vboPos));
+		glDeleteBuffers(1, &(mMyMeshes[i].vboNormal));
+		glDeleteBuffers(1, &(mMyMeshes[i].vboTangent));
+		glDeleteBuffers(1, &(mMyMeshes[i].vboBitangent));
+		glDeleteBuffers(1, &(mMyMeshes[i].vboTexCoord));
+		glDeleteBuffers(1, &(mMyMeshes[i].vboIndices));
 
 #if  defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 
@@ -76,21 +82,33 @@ VSResModelLib::SetImporter(Assimp::Importer *imp) {
 
 
 void
-VSResModelLib::clone(VSResourceLib *res) {
+VSModelLib::clone(VSResourceLib *res) {
 
 	if (res == NULL)
 		return;
 
-	VSResModelLib *r = (VSResModelLib *)res;
+	VSModelLib *r = (VSModelLib *)res;
 
 	this->mMyMeshes = r->mMyMeshes;
 }
 
 
+void 
+VSModelLib::setGenerationMode(int mode) {
+
+	mFlagMode = mode;
+}
+
+
+int
+VSModelLib::getGenerationMode() {
+
+	return mFlagMode;
+}
 
 
 bool
-VSResModelLib::load(std::string filename) {
+VSModelLib::load(std::string filename) {
 
 #ifndef __ANDROID_API__
 	Assimp::Importer importer;
@@ -104,7 +122,7 @@ VSResModelLib::load(std::string filename) {
 			  filename.c_str());
 		return false;
 	}
-	pScene = importer.ReadFile( filename,
+	mScene = importer.ReadFile( filename,
 					aiProcessPreset_TargetRealtime_Quality);
 	//aiProcessPreset_TargetRealtime_MaxQuality
 #else
@@ -113,7 +131,7 @@ VSResModelLib::load(std::string filename) {
 #endif
 
 	// If the import failed, report it
-	if( !pScene) {
+	if( !mScene) {
 		VSLOG(sLogError, "Failed to import %s", 
 					filename.c_str());
 		return false;
@@ -125,12 +143,12 @@ VSResModelLib::load(std::string filename) {
 
 #if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 
-	pTextureIdMap.clear();
-	bool result = loadTextures(pScene, prefix);
+	mTextureIdMap.clear();
+	bool result = loadTextures(mScene, prefix);
 
 #endif
 
-	genVAOsAndUniformBuffer(pScene);
+	genVAOsAndUniformBuffer(mScene);
 
 	// determine bounding box
 	aiVector3t<float> min, max;
@@ -139,7 +157,7 @@ VSResModelLib::load(std::string filename) {
 	max.x = max.y = max.z = -1e10f;
 
 	mVSML->loadIdentity(VSMathLib::AUX0);
-	get_bounding_box_for_node(pScene->mRootNode,&min,&max);
+	get_bounding_box_for_node(mScene->mRootNode,&min,&max);
 
 	//bb[0][0] = min.x;
 	//bb[0][1] = min.y;
@@ -187,7 +205,7 @@ VSResModelLib::load(std::string filename) {
 
 #if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 	// clear texture map
-	pTextureIdMap.clear();
+	mTextureIdMap.clear();
 	return result;
 #else
 	return true;
@@ -196,7 +214,7 @@ VSResModelLib::load(std::string filename) {
 
 
 void 
-VSResModelLib::render () {
+VSModelLib::render () {
 
 	mVSML->pushMatrix(VSMathLib::MODEL);
 	//mVSML->scale(mScaleToUnitCube, mScaleToUnitCube, mScaleToUnitCube);
@@ -249,7 +267,7 @@ VSResModelLib::render () {
 
 // Load model textures
 bool 
-VSResModelLib::loadTextures(const aiScene* scene, 
+VSModelLib::loadTextures(const aiScene* scene, 
 							std::string prefix)
 {
 	VSLOG(sLogInfo, "Loading Textures from %s", 
@@ -267,7 +285,7 @@ VSResModelLib::loadTextures(const aiScene* scene,
 		
 		while (texFound == AI_SUCCESS) {
 			//fill map with textures, OpenGL image ids set to 0
-			pTextureIdMap[path.data] = 0; 
+			mTextureIdMap[path.data] = 0; 
 			// more textures?
 			texIndex++;
 			texFound = 
@@ -276,13 +294,13 @@ VSResModelLib::loadTextures(const aiScene* scene,
 		}
 	}
 
-	int numTextures = (int)pTextureIdMap.size();
+	int numTextures = (int)mTextureIdMap.size();
 
 	/* get iterator */
 	std::map<std::string, GLuint>::iterator itr = 
-							pTextureIdMap.begin();
+							mTextureIdMap.begin();
 
-	for (int i= 0; itr != pTextureIdMap.end(); ++i, ++itr)
+	for (int i= 0; itr != mTextureIdMap.end(); ++i, ++itr)
 	{
 		// get filename
 		std::string filename = (*itr).first;  
@@ -304,7 +322,7 @@ VSResModelLib::loadTextures(const aiScene* scene,
 #endif
 
 void 
-VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
+VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 
 	MyMesh aMesh;
 	struct Material aMat; 
@@ -320,7 +338,7 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 
 		if (mesh->mPrimitiveTypes != 4) {
 			aMesh.numIndices = 0;
-			pMyMeshesAux.push_back(aMesh);
+			mMyMeshesAux.push_back(aMesh);
 			continue;
 		}
 
@@ -404,19 +422,10 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 			}
 		}
 		if (pUseAdjacency) {
-			//printf("\n");
-			//for (unsigned int i = 0; i < mesh->mNumFaces * 3; ++i)
-			//	printf("%d ", faceArray[i]);
-			//printf("\n");
-			//for (unsigned int i = 0; i < mesh->mNumFaces * 6; ++i)
-			//	printf("%d ", adjFaceArray[i]);
-			//printf("\n");
 			aMesh.numIndices = sc->mMeshes[n]->mNumFaces * 6;
 		}
 		else
 			aMesh.numIndices = sc->mMeshes[n]->mNumFaces * 6;
-
-
 
 		// generate Vertex Array for mesh
 		glGenVertexArrays(1,&(aMesh.vao));
@@ -436,8 +445,6 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, 
 						sizeof(unsigned int) * mesh->mNumFaces * 3,
 						faceArray, GL_STATIC_DRAW);
-
-//		free(faceArray);
 
 		// buffer for vertex positions
 		if (mesh->HasPositions()) {
@@ -532,7 +539,7 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 											0, &texPath)){
 				//bind texture
 				aMesh.texUnits[0] = 
-								pTextureIdMap[texPath.data];
+								mTextureIdMap[texPath.data];
 				aMesh.texTypes[0] = GL_TEXTURE_2D;
 				aMat.texCount = 1;
 			}
@@ -580,13 +587,13 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 
 		aMesh.mat = aMat;
 
-		pMyMeshesAux.push_back(aMesh);
+		mMyMeshesAux.push_back(aMesh);
 	}
 
 	mVSML->loadIdentity(VSMathLib::AUX0);
 	recursive_walk_for_matrices(sc, sc->mRootNode);
 
-	pMyMeshesAux.clear();
+	mMyMeshesAux.clear();
 
 	VSLOG(sLogInfo, "Total Meshes: %d  | Vertices: %d | Faces: %d",
 					sc->mNumMeshes, totalVerts, totalTris);
@@ -597,7 +604,7 @@ VSResModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 #define aisgl_max(x,y) (y>x?y:x)
 
 void 
-VSResModelLib::get_bounding_box_for_node (const aiNode* nd, 
+VSModelLib::get_bounding_box_for_node (const aiNode* nd, 
 	aiVector3D* min, 
 	aiVector3D* max)
 	
@@ -622,7 +629,7 @@ VSResModelLib::get_bounding_box_for_node (const aiNode* nd,
 
 		for (; n < nd->mNumMeshes; ++n) {
 			const struct aiMesh* mesh = 
-							pScene->mMeshes[nd->mMeshes[n]];
+							mScene->mMeshes[nd->mMeshes[n]];
 			for (unsigned int t = 0; t < mesh->mNumVertices; ++t) {
 
 				aiVector3D tmp = mesh->mVertices[t];
@@ -655,7 +662,7 @@ VSResModelLib::get_bounding_box_for_node (const aiNode* nd,
 
 
 void 
-VSResModelLib::recursive_walk_for_matrices(
+VSModelLib::recursive_walk_for_matrices(
 			const struct aiScene *sc, 
 			const struct aiNode* nd) {
 
@@ -677,7 +684,7 @@ VSResModelLib::recursive_walk_for_matrices(
 			if(sc->mMeshes[nd->mMeshes[n]]->mPrimitiveTypes == 4) {
 
 				MyMesh aMesh;
-				memcpy(&aMesh, &(pMyMeshesAux[nd->mMeshes[n]]), 
+				memcpy(&aMesh, &(mMyMeshesAux[nd->mMeshes[n]]), 
 											sizeof (aMesh));
 				memcpy(aMesh.transform,mVSML->get(VSMathLib::AUX0), 
 											sizeof(float)*16);
@@ -701,9 +708,18 @@ VSResModelLib::recursive_walk_for_matrices(
 
 
 void 
-VSResModelLib::setColor(VSResourceLib::MaterialSemantics m, float *values) {
+VSModelLib::setColor(VSResourceLib::MaterialSemantics m, float r, float g, float b, float a) {
 
-	if (m == TEX_COUNT)
+	float c[4];
+	c[0] = r; c[1] = g; c[2] = b; c[3] = a;
+	setColor(m, c);
+}
+
+
+void
+VSModelLib::setColor(VSResourceLib::MaterialSemantics m, float *values) {
+
+		if (m == TEX_COUNT)
 		return;
 
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
@@ -730,7 +746,7 @@ VSResModelLib::setColor(VSResourceLib::MaterialSemantics m, float *values) {
 
 
 void 
-VSResModelLib::setColor(unsigned int mesh, VSResourceLib::MaterialSemantics m, float *values) {
+VSModelLib::setColor(unsigned int mesh, VSResourceLib::MaterialSemantics m, float *values) {
 
 	if (mesh >= mMyMeshes.size())
 		return;
@@ -760,7 +776,7 @@ VSResModelLib::setColor(unsigned int mesh, VSResourceLib::MaterialSemantics m, f
 
 
 void
-VSResModelLib::setMaterialColor(MaterialColors m) {
+VSModelLib::setMaterialColor(MaterialColors m) {
 
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
 
@@ -774,7 +790,7 @@ VSResModelLib::setMaterialColor(MaterialColors m) {
 #if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
 
 void 
-VSResModelLib::setTexture(unsigned int unit, unsigned int textureID, GLenum textureType) {
+VSModelLib::setTexture(unsigned int unit, unsigned int textureID, GLenum textureType) {
 
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
 		mMyMeshes[i].texUnits[unit] = textureID;
@@ -785,14 +801,9 @@ VSResModelLib::setTexture(unsigned int unit, unsigned int textureID, GLenum text
 
 
 void 
-VSResModelLib::addTexture(unsigned int unit, std::string filename) {
+VSModelLib::addTexture(unsigned int unit, std::string filename) {
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
 	int textID = loadRGBATexture(filename, true);
-#endif
-#if defined(__ANDROID_API__)
-	int textID = LoadTexture(filename);
-#endif
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
 		mMyMeshes[i].texUnits[unit] = textID;
 		mMyMeshes[i].texTypes[unit] = GL_TEXTURE_2D;
@@ -802,26 +813,84 @@ VSResModelLib::addTexture(unsigned int unit, std::string filename) {
 
 
 void 
-VSResModelLib::addCubeMapTexture(unsigned int unit, std::string posX, std::string negX, 
+VSModelLib::addCubeMapTexture(unsigned int unit, std::string posX, std::string negX, 
 									std::string posY, std::string negY, 
 									std::string posZ, std::string negZ) {
 
-#ifdef _VSL_TEXTURE_WITH_DEVIL
 	int textID = loadCubeMapTexture(posX, negX, posY, negY, posZ, negZ);
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
 		mMyMeshes[i].texUnits[unit] = textID;
 		mMyMeshes[i].texTypes[unit] = GL_TEXTURE_CUBE_MAP;
 		mMyMeshes[i].mat.texCount = 1;
 	}
-#endif
 }
 
 
 #endif
 
+
+void 
+VSModelLib::buildVAO(MyMesh &m, size_t nump, float *p, float *n, float *tc, float *tang, float *bitang, size_t  numInd, unsigned int *ind) {
+
+
+	glGenVertexArrays(1, &m.vao);
+	glBindVertexArray(m.vao);
+
+	if (p != NULL) {
+		glGenBuffers(1, &m.vboPos);
+		glBindBuffer(GL_ARRAY_BUFFER, m.vboPos);
+		glBufferData(GL_ARRAY_BUFFER, nump * 4 * sizeof(float), p, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(VSShaderLib::VERTEX_COORD_ATTRIB);
+		glVertexAttribPointer(VSShaderLib::VERTEX_COORD_ATTRIB, 4, GL_FLOAT, 0, 0, 0);
+	}
+	if (n != NULL && (mFlagMode & NORMAL)) {
+		glGenBuffers(1, &m.vboNormal);
+		glBindBuffer(GL_ARRAY_BUFFER, m.vboNormal);
+		glBufferData(GL_ARRAY_BUFFER, nump * 3 * sizeof(float), &(n[0]), GL_STATIC_DRAW);
+		glEnableVertexAttribArray(VSShaderLib::NORMAL_ATTRIB);
+		glVertexAttribPointer(VSShaderLib::NORMAL_ATTRIB, 3, GL_FLOAT, 0, 0, 0);
+	}
+	if (tang != NULL && (mFlagMode & TANGENT)) {
+		glGenBuffers(1, &m.vboTangent);
+		glBindBuffer(GL_ARRAY_BUFFER, m.vboTangent);
+		glBufferData(GL_ARRAY_BUFFER, nump * 3 * sizeof(float), &(tang[0]), GL_STATIC_DRAW);
+		glEnableVertexAttribArray(VSShaderLib::TANGENT_ATTRIB);
+		glVertexAttribPointer(VSShaderLib::TANGENT_ATTRIB, 3, GL_FLOAT, 0, 0, 0);
+	}
+	if (bitang != NULL && (mFlagMode & BITANGENT)) {
+		glGenBuffers(1, &m.vboBitangent);
+		glBindBuffer(GL_ARRAY_BUFFER, m.vboBitangent);
+		glBufferData(GL_ARRAY_BUFFER, nump * 3 * sizeof(float), &(bitang[0]), GL_STATIC_DRAW);
+		glEnableVertexAttribArray(VSShaderLib::BITANGENT_ATTRIB);
+		glVertexAttribPointer(VSShaderLib::BITANGENT_ATTRIB, 3, GL_FLOAT, 0, 0, 0);
+	}
+	if (tc != NULL && (mFlagMode & TEXCOORD)) {
+		glGenBuffers(1, &m.vboTexCoord);
+		glBindBuffer(GL_ARRAY_BUFFER, m.vboTexCoord);
+		glBufferData(GL_ARRAY_BUFFER, nump * 2 * sizeof(float), &(tc[0]), GL_STATIC_DRAW);
+		glEnableVertexAttribArray(VSShaderLib::TEXTURE_COORD_ATTRIB);
+		glVertexAttribPointer(VSShaderLib::TEXTURE_COORD_ATTRIB, 2, GL_FLOAT, 0, 0, 0);
+	}
+	if (ind != NULL) {
+		glGenBuffers(1, &m.vboIndices);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m.vboIndices);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, numInd * sizeof(unsigned int), &(ind[0]), GL_STATIC_DRAW);
+		m.hasIndices = true;
+		m.numIndices = (int)numInd;
+	}
+	else {
+		m.hasIndices = false;
+		m.numIndices = (int)nump;
+	}
+	glBindVertexArray(0);
+}
+
+
+
+
 // Auxiliary functions to convert Assimp data to float arays
 void 
-VSResModelLib::set_float4(float f[4], 
+VSModelLib::set_float4(float f[4], 
 					float a, float b, float c, float d)
 {
 	f[0] = a;
@@ -833,7 +902,7 @@ VSResModelLib::set_float4(float f[4],
 
 // Auxiliary functions to convert Assimp data to float arays
 void 
-VSResModelLib::color4_to_float4(const aiColor4D *c, 
+VSModelLib::color4_to_float4(const aiColor4D *c, 
 					float f[4])
 {
 	f[0] = c->r;

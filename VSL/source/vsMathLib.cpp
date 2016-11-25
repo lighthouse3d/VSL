@@ -885,7 +885,7 @@ VSMathLib::subtract(float *a, float *b, float *res) {
 
 // res = a + b
 void
-VSMathLib::add(float *a, float *b, float *res) {
+VSMathLib::add( float *a, float *b, float *res) {
 
 	res[0] = b[0] + a[0];
 	res[1] = b[1] + a[1];

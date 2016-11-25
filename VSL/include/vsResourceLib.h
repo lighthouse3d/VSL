@@ -61,6 +61,7 @@
 #endif
 
 #ifdef _WIN32
+// remove this define to skip adding the devil lib to the project
 #define _VSL_TEXTURE_WITH_DEVIL
 #include <IL/il.h>
 #pragma comment(lib,"devil.lib")

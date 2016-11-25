@@ -12,6 +12,9 @@
  * placement and projection definition for programmers
  * working with OpenGL core versions.
  *
+ * \version 0.2.4 (22-11-2016)
+ *		Added a method to perform point matrix multiplication
+
  * \version 0.2.3 (03-06-2013)
  *		Fixed a bug that appeared with nVidia drivers
  *			it only affected blocks
@@ -65,7 +68,7 @@ class VSMathLib {
 
 	public:
 		/// number of settable matrices
-		#define COUNT_MATRICES 7
+		#define COUNT_MATRICES 11
 		/// number of derived matrices
 		#define COUNT_COMPUTED_MATRICES 5
 		#define COUNT_COMPUTED_4x4_MATRICES 2
@@ -79,7 +82,11 @@ class VSMathLib {
 				AUX0,
 				AUX1,
 				AUX2,
-				AUX3
+				AUX3,
+				AUX4,
+				AUX5,
+				AUX6,
+				AUX7
 		} ; 
 		/// Enumeration of derived matrices
 		enum ComputedMatrixTypes {
