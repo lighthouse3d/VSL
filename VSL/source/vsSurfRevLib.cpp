@@ -31,26 +31,13 @@
 #include <stdlib.h>
 #include <vector>
 #include <cmath>
-
+#include <cfloat>
 
 VSSurfRevLib::VSSurfRevLib() {
 }
 
 
 VSSurfRevLib::~VSSurfRevLib() {
-}
-
-
-void
-VSSurfRevLib::clone(VSSurfRevLib *res) {
-
-	if (res == NULL)
-		return;
-
-	VSSurfRevLib *r = (VSSurfRevLib *)res;
-
-	this->mMyMeshes = r->mMyMeshes;
-	this->mFlagMode = r->mFlagMode;
 }
 
 
@@ -222,38 +209,6 @@ VSSurfRevLib::create (float *p, int numP, int sides, int closed, float smoothCos
 	}
 
 	computeVAO(totalPoints-2, &(points[2]), &(points[0]), sides, smoothCos);
-
-	//std::vector<float> points;
-	//points.resize((numP + 2) * 2);
-
-	//for(i=2;i<(numP+1)*2;i++) {
-	//	points[i] = p[i-2];
-	//}
-
-	//// distinguishes between closed curves and open curves
-	//// for normal computation
-	//int numPoints = numP + 2;
-
-	//if (closed) {
-
-	//	points[0] = p[(numP-2)*2];
-	//	points[1] = p[(numP-2)*2+1];
-
-	//	points[(numPoints-1)*2]     = p[2];
-	//	points[(numPoints-1)*2 + 1] = p[3];
-	//}
-	//else {
-
-	//	points[0] = points[2] + (points[2]-points[4]);
-	//	points[1] = points[3] + (points[3]-points[5]);
-
-	//	points[(numPoints-1)*2]     = points[(numPoints-2)*2]     + 
-	//										(points[(numPoints-2)*2]     - points[(numPoints-3)*2]);
-	//	points[(numPoints-1)*2 + 1] = points[(numPoints-2)*2 + 1] + 
-	//										(points[(numPoints-2)*2 + 1] - points[(numPoints-3)*2 + 1]);
-	//}
-
-	//computeVAO(numP, p, &(points[0]), sides, smoothCos);
 }
 
 

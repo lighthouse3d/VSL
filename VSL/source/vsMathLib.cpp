@@ -8,6 +8,7 @@ http://www.lighthouse3d.com/very-simple-libs
 
 ----------------------------------------------------*/
 
+
 #include "vsMathLib.h"
 #include "vsShaderLib.h"
 #include <math.h>
@@ -170,7 +171,7 @@ VSMathLib::multMatrix(MatrixTypes aType, float *aMatrix)
 
 // glLoadMatrix implementation
 void 
-VSMathLib::loadMatrix(MatrixTypes aType, float *aMatrix)
+VSMathLib::loadMatrix(MatrixTypes aType, const float *aMatrix)
 {
 	memcpy(mMatrix[aType], aMatrix, 16 * sizeof(float));
 }
@@ -234,8 +235,8 @@ VSMathLib::rotate(MatrixTypes aType, float angle, float x, float y, float z)
 	v[2] = z;
 
 	float radAngle = DegToRad(angle);
-	float co = cos(radAngle);
-	float si = sin(radAngle);
+	float co = cosf(radAngle);
+	float si = sinf(radAngle);
 	normalize(v);
 	float x2 = v[0]*v[0];
 	float y2 = v[1]*v[1];
@@ -335,7 +336,7 @@ VSMathLib::perspective(float fov, float ratio, float nearp, float farp)
 {
 	float projMatrix[16];
 
-	float f = 1.0f / tan (fov * (M_PI / 360.0f));
+	float f = 1.0f / tanf (fov * ((float)M_PI / 360.0f));
 
 	setIdentityMatrix(projMatrix,4);
 
@@ -486,6 +487,19 @@ VSMathLib::invert(MatrixTypes aType) {
 	det = 1 / det;
 	for (int j = 0; j < 16; j++)
 		mat[j] = dst[j] * det;
+}
+
+
+// computes the camera position based on the view matrix
+void
+VSMathLib::getCameraPosition(float *res) {
+
+	for (int i = 0; i < 3; ++i) {
+		res[i] = 0;
+		for (int j = 0; j < 3; ++j) {
+			res[i] -= mMatrix[VIEW][12 + j] * mMatrix[VIEW][i * 4 + j];
+		}
+	}
 }
 
 

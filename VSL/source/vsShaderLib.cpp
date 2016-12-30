@@ -636,8 +636,9 @@ VSShaderLib::textFileRead(std::string fileName) {
 		return content;
 	}
 	size_t size = (size_t)AAsset_getLength(asset);
-	content = (char*) malloc (sizeof(char)*size);
-	AAsset_read (asset,content,size);
+	content = (char*)malloc(sizeof(char)*size + 1);
+	AAsset_read(asset, content, size);
+	content[size] = '\0';
 	__android_log_print(ANDROID_LOG_DEBUG, loc, "%s", content);
 	AAsset_close(asset);
 	return content;

@@ -8,7 +8,6 @@
  * \version 0.1.1
  *		Added virtual function load cubemaps
  *		Added virtual function to set a preloaded texture
- *		Added a virtual clone method
  *
  * \version 0.1.0
  *		Initial Release
@@ -61,6 +60,12 @@ float VSResourceLib::Colors[24][10] =
 	{0.05f ,0.05f ,0.05f ,0.5f ,0.5f ,0.5f ,0.7f ,0.7f ,0.7f ,		10.0f} ,
 	{0.05f ,0.05f ,0.0f ,0.5f ,0.5f ,0.4f ,0.7f ,0.7f ,0.04f ,		10.0f}};	
 
+float VSResourceLib::sIdentityMatrix[16] = {
+	1.0f, 0.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f };
+
 VSLogLib VSResourceLib::sLogError, VSResourceLib::sLogInfo;
 std::string VSResourceLib::sMaterialBlockName = "";
 
@@ -81,7 +86,7 @@ VSResourceLib::VSResourceLib(): mScaleToUnitCube(1.0), bbVAO(0), bbInit(false)
 	mVSML = VSMathLib::getInstance();
 
 	/* initialization of DevIL */
-#ifdef _VSL_TEXTURE_WITH_DEVIL
+#if (__VSL_TEXTURE_LOADING__ == 1) && !defined(__ANDROID_API__)
 	ilInit(); 
 	ilEnable(IL_ORIGIN_SET);
 	ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
@@ -249,7 +254,7 @@ VSResourceLib::getInfo() {
 	return(sLogInfo.dumpToString());
 }
 
-#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
+#if (__VSL_TEXTURE_LOADING__ == 1)
 
 // helper function for derived classes
 // loads an image and defines an 8-bit RGBA texture
@@ -259,7 +264,7 @@ VSResourceLib::loadRGBATexture(std::string filename,
 						GLenum aFilter, GLenum aRepMode) {
 
 #ifdef __ANDROID_API__
-	return LoadTexture(filename);
+	return (unsigned int)LoadTexture(filename);
 #else
 
 	ILboolean success;
@@ -371,8 +376,7 @@ VSResourceLib::loadCubeMapTexture(	std::string posX, std::string negX,
 									std::string posZ, std::string negZ) {
 
 #ifdef __ANDROID_API__
-    // todo
-	return 0;
+	return (unsigned int)LoadCubeMapTexture(posX, negX, posY, negY, posZ, negZ);
 #else
 	ILboolean success;
 	unsigned int imageID;

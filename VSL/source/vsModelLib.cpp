@@ -33,17 +33,28 @@
  * http://www.lighthouse3d.com/very-simple-libs
  *
  ---------------------------------------------------------------*/
+
 #include "vsModelLib.h"
 
 #ifdef __ANDROID_API__
-Assimp::Importer *VSResModelLib::s_Importer = NULL;
+#include <android/log.h>
+static const char* kTAG = "vsModelLib.cpp";
+#define LOGD(...) \
+  ((void)__android_log_print(ANDROID_LOG_DEBUG, kTAG, __VA_ARGS__))
+#endif
+#if (__VSL_MODEL_LOADING__ == 1) && defined(__ANDROID_API__)
+Assimp::Importer *VSModelLib::s_Importer = NULL;
 #endif
 
 
 
 
-VSModelLib::VSModelLib():mScene(0), pUseAdjacency(false)
-{
+VSModelLib::VSModelLib():pUseAdjacency(false) {
+
+#if (__VSL_MODEL_LOADING__ == 1)
+
+	mScene = NULL;
+#endif
 	mMyMeshes.reserve(10);
 	mMyMeshesAux.reserve(10);
 	mFlagMode = NORMAL | TEXCOORD;
@@ -52,8 +63,8 @@ VSModelLib::VSModelLib():mScene(0), pUseAdjacency(false)
 
 VSModelLib::~VSModelLib() {
 
-	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {	
-		glDeleteVertexArrays(1,&(mMyMeshes[i].vao));
+	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
+		//glDeleteVertexArrays(1,&(mMyMeshes[i].vao));
 		glDeleteBuffers(1, &(mMyMeshes[i].vboPos));
 		glDeleteBuffers(1, &(mMyMeshes[i].vboNormal));
 		glDeleteBuffers(1, &(mMyMeshes[i].vboTangent));
@@ -73,27 +84,15 @@ VSModelLib::~VSModelLib() {
 }
 
 
-#ifdef __ANDROID_API__
+#if (__VSL_MODEL_LOADING__ == 1) && defined(__ANDROID_API__)
 void
-VSResModelLib::SetImporter(Assimp::Importer *imp) {
+VSModelLib::SetImporter(Assimp::Importer *imp) {
 	s_Importer = imp;
 }
 #endif
 
 
 void
-VSModelLib::clone(VSResourceLib *res) {
-
-	if (res == NULL)
-		return;
-
-	VSModelLib *r = (VSModelLib *)res;
-
-	this->mMyMeshes = r->mMyMeshes;
-}
-
-
-void 
 VSModelLib::setGenerationMode(int mode) {
 
 	mFlagMode = mode;
@@ -106,6 +105,8 @@ VSModelLib::getGenerationMode() {
 	return mFlagMode;
 }
 
+
+#if (__VSL_MODEL_LOADING__ == 1)
 
 bool
 VSModelLib::load(std::string filename) {
@@ -126,13 +127,13 @@ VSModelLib::load(std::string filename) {
 					aiProcessPreset_TargetRealtime_Quality);
 	//aiProcessPreset_TargetRealtime_MaxQuality
 #else
-	pScene = s_Importer->ReadFile( filename,
+	mScene = s_Importer->ReadFile( filename,
 								aiProcessPreset_TargetRealtime_Quality);
+	LOGD("Assimp done");
 #endif
-
 	// If the import failed, report it
 	if( !mScene) {
-		VSLOG(sLogError, "Failed to import %s", 
+		VSLOG(sLogError, "Failed to import %s",
 					filename.c_str());
 		return false;
 	}
@@ -141,7 +142,7 @@ VSModelLib::load(std::string filename) {
 	std::string prefix = filename.substr(0, index+1);
 
 
-#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
+#if (__VSL_TEXTURE_LOADING__ == 1)
 
 	mTextureIdMap.clear();
 	bool result = loadTextures(mScene, prefix);
@@ -174,7 +175,7 @@ VSModelLib::load(std::string filename) {
 	tmp = max.x - min.x;
 	tmp = max.y - min.y > tmp? max.y - min.y:tmp;
 	tmp = max.z - min.z > tmp? max.z - min.z:tmp;
-	
+
 	mScaleToUnitCube = 2.0f / tmp;
 
 	bb[0][0] = -1.0f * (max.x - min.x) * mScaleToUnitCube/2;
@@ -203,7 +204,7 @@ VSModelLib::load(std::string filename) {
 		mVSML->popMatrix(mVSML->AUX0);
 	}
 
-#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
+#if (__VSL_TEXTURE_LOADING__ == 1)
 	// clear texture map
 	mTextureIdMap.clear();
 	return result;
@@ -212,31 +213,33 @@ VSModelLib::load(std::string filename) {
 #endif
 }
 
+#endif
 
-void 
+
+void
 VSModelLib::render () {
 
 	mVSML->pushMatrix(VSMathLib::MODEL);
 	//mVSML->scale(mScaleToUnitCube, mScaleToUnitCube, mScaleToUnitCube);
 	//mVSML->translate(-mCenter[0], -mCenter[1], -mCenter[2]);
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
-	
+
 		mVSML->pushMatrix(VSMathLib::MODEL);
-		mVSML->multMatrix(VSMathLib::MODEL, 
-								mMyMeshes[i].transform);
+		mVSML->multMatrix(VSMathLib::MODEL,
+						  mMyMeshes[i].transform);
 		// send matrices to shaders
 		mVSML->matricesToGL();
 
 		// set material
 		setMaterial(mMyMeshes[i].mat);
 
-#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
+#if (__VSL_TEXTURE_LOADING__ == 1)
 
 		// bind texture
 		for (unsigned int j = 0; j < VSResourceLib::MAX_TEXTURES; ++j) {
 			if (mMyMeshes[i].texUnits[j] != 0) {
 				glActiveTexture(GL_TEXTURE0 + j);
-				glBindTexture(mMyMeshes[i].texTypes[j], 
+				glBindTexture(mMyMeshes[i].texTypes[j],
 						mMyMeshes[i].texUnits[j]);
 			}
 		}
@@ -245,11 +248,11 @@ VSModelLib::render () {
 		glBindVertexArray(mMyMeshes[i].vao);
 		if (mMyMeshes[i].hasIndices)
 			glDrawElements(mMyMeshes[i].type,
-				mMyMeshes[i].numIndices, GL_UNSIGNED_INT, 0);
+						   mMyMeshes[i].numIndices, GL_UNSIGNED_INT, 0);
 		else
 			glDrawArrays(mMyMeshes[i].type, 0, mMyMeshes[i].numIndices);
 
-#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
+#if (__VSL_TEXTURE_LOADING__ == 1)
 		for (unsigned int j = 0; j < VSResourceLib::MAX_TEXTURES; ++j) {
 			if (mMyMeshes[i].texUnits[j] != 0) {
 				glActiveTexture(GL_TEXTURE0 + j);
@@ -263,55 +266,53 @@ VSModelLib::render () {
 	mVSML->popMatrix(VSMathLib::MODEL);
 }
 
-#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
+#if (__VSL_TEXTURE_LOADING__ == 1)
 
 // Load model textures
-bool 
-VSModelLib::loadTextures(const aiScene* scene, 
+bool
+VSModelLib::loadTextures(const aiScene* scene,
 							std::string prefix)
 {
-	VSLOG(sLogInfo, "Loading Textures from %s", 
+	VSLOG(sLogInfo, "Loading Textures from %s",
 						prefix.c_str());
-	
+
 	/* scan scene's materials for textures */
 	for (unsigned int m=0; m<scene->mNumMaterials; ++m)
 	{
-		int texIndex = 0;
+		unsigned int texIndex = 0;
 		aiString path;	// filename
 
-		aiReturn texFound = 
+		aiReturn texFound =
 			scene->mMaterials[m]->
 			GetTexture(aiTextureType_DIFFUSE, texIndex, &path);
-		
+
 		while (texFound == AI_SUCCESS) {
 			//fill map with textures, OpenGL image ids set to 0
-			mTextureIdMap[path.data] = 0; 
+			mTextureIdMap[path.data] = 0;
 			// more textures?
 			texIndex++;
-			texFound = 
+			texFound =
 				scene->mMaterials[m]->
 				GetTexture(aiTextureType_DIFFUSE, texIndex, &path);
 		}
 	}
 
-	int numTextures = (int)mTextureIdMap.size();
-
 	/* get iterator */
-	std::map<std::string, GLuint>::iterator itr = 
+	std::map<std::string, GLuint>::iterator itr =
 							mTextureIdMap.begin();
 
 	for (int i= 0; itr != mTextureIdMap.end(); ++i, ++itr)
 	{
 		// get filename
-		std::string filename = (*itr).first;  
+		std::string filename = (*itr).first;
 		filename = prefix + filename;
 		// save texture id for filename in map
 #ifdef __ANDROID_API__
-		(*itr).second = LoadTexture(filename);
+		(*itr).second = (GLuint)LoadTexture(filename);
 #else
 		(*itr).second = loadRGBATexture(filename, true,true);
 #endif
-		VSLOG(sLogInfo, "Texture %s loaded with name %d", 
+		VSLOG(sLogInfo, "Texture %s loaded with name %d",
 			filename.c_str(), (int)(*itr).second);
 	}
 
@@ -321,15 +322,16 @@ VSModelLib::loadTextures(const aiScene* scene,
 
 #endif
 
-void 
+#if (__VSL_MODEL_LOADING__ == 1)
+
+void
 VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 
 	MyMesh aMesh;
-	struct Material aMat; 
-	GLuint buffer;
+	struct Material aMat;
 	int totalTris = 0, totalVerts = 0;
 	unsigned int *adjFaceArray;
-	
+
 	VSLOG(sLogInfo, "Number of Meshes: %d",sc->mNumMeshes);
 	// For each mesh
 	for (unsigned int n = 0; n < sc->mNumMeshes; ++n)
@@ -342,7 +344,7 @@ VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 			continue;
 		}
 
-		VSLOG(sLogInfo, "Mesh[%d] Triangles %d",n, 
+		VSLOG(sLogInfo, "Mesh[%d] Triangles %d",n,
 							mesh->mNumFaces);
 		totalTris += mesh->mNumFaces;
 		// create array with faces
@@ -371,7 +373,7 @@ VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 			// fill it up with edges. twin info will be added latter
 			edge = (struct HalfEdge *)malloc(sizeof(struct HalfEdge) * mesh->mNumFaces * 3);
 			for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
-		
+
 				edge[i*3].vertex = faceArray[i*3+1];
 				edge[i*3+1].vertex = faceArray[i*3+2];
 				edge[i*3+2].vertex = faceArray[i*3];
@@ -396,7 +398,7 @@ VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 			iter = myEdges.begin();
 
 			for (; iter != myEdges.end(); ++iter) {
-		 
+
 				edgeIndex = iter->first;
 				twinIndex = std::pair<unsigned int, unsigned int>(edgeIndex.second, edgeIndex.first);
 
@@ -405,10 +407,10 @@ VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 				else
 					iter->second->twin = NULL;
 			}
-		
+
 			adjFaceArray = (unsigned int *)malloc(sizeof(unsigned int) * mesh->mNumFaces * 6);
 			for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
-		
+
 				// NOTE: twin may be null
 				adjFaceArray[i*6]   = edge[3*i + 0].next->vertex;
 				adjFaceArray[i*6+1] = edge[3*i + 0].twin?edge[3*i + 0].twin->vertex:edge[3*i + 0].next->vertex;
@@ -422,78 +424,83 @@ VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 			}
 		}
 		if (pUseAdjacency) {
-			aMesh.numIndices = sc->mMeshes[n]->mNumFaces * 6;
+			aMesh.numIndices = mesh->mNumFaces * 6;
 		}
 		else
-			aMesh.numIndices = sc->mMeshes[n]->mNumFaces * 6;
+			aMesh.numIndices = mesh->mNumFaces * 3;
 
 		// generate Vertex Array for mesh
 		glGenVertexArrays(1,&(aMesh.vao));
 		glBindVertexArray(aMesh.vao);
 
 		// buffer for faces
-		glGenBuffers(1, &buffer);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
+		glGenBuffers(1, &aMesh.vboIndices);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, aMesh.vboIndices);
 
 		if (pUseAdjacency) {
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, 
-						sizeof(unsigned int) * mesh->mNumFaces * 6,
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+						sizeof(unsigned int) * aMesh.numIndices,
 						adjFaceArray, GL_STATIC_DRAW);
 			free(adjFaceArray);
 		}
 		else
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, 
-						sizeof(unsigned int) * mesh->mNumFaces * 3,
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+						sizeof(unsigned int) * aMesh.numIndices,
 						faceArray, GL_STATIC_DRAW);
 
 		// buffer for vertex positions
 		if (mesh->HasPositions()) {
 
-			glGenBuffers(1, &buffer);
-			glBindBuffer(GL_ARRAY_BUFFER, buffer);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(float)*3*mesh->mNumVertices, 
-				mesh->mVertices, GL_STATIC_DRAW);
+			glGenBuffers(1, &aMesh.vboPos);
+			glBindBuffer(GL_ARRAY_BUFFER, aMesh.vboPos);
+			std::vector<float> pp; pp.resize(4 * mesh->mNumVertices);
+			for (unsigned int k = 0; k < mesh->mNumVertices; ++k) {
+				pp[k * 4] = mesh->mVertices[k].x;
+				pp[k * 4 + 1] = mesh->mVertices[k].y;
+				pp[k * 4 + 2] = mesh->mVertices[k].z;
+				pp[k * 4 + 3] = 1.0f;;
+			}
+			glBufferData(GL_ARRAY_BUFFER, sizeof(float)*pp.size(), 	&pp[0], GL_STATIC_DRAW);
 			glEnableVertexAttribArray(
 					VSShaderLib::VERTEX_COORD_ATTRIB);
 			glVertexAttribPointer(VSShaderLib::VERTEX_COORD_ATTRIB,
-					3, GL_FLOAT, 0, 0, 0);
+					4, GL_FLOAT, 0, 0, 0);
 			totalVerts += mesh->mNumVertices;
 		}
 
 		// buffer for vertex normals
 		if (mesh->HasNormals()) {
 
-			glGenBuffers(1, &buffer);
-			glBindBuffer(GL_ARRAY_BUFFER, buffer);
-			glBufferData(GL_ARRAY_BUFFER, 
-				sizeof(float)*3*mesh->mNumVertices, mesh->mNormals, 
-				GL_STATIC_DRAW);
+			glGenBuffers(1, &aMesh.vboNormal);
+			glBindBuffer(GL_ARRAY_BUFFER, aMesh.vboNormal);
+			glBufferData(GL_ARRAY_BUFFER,
+				sizeof(float)*3*mesh->mNumVertices, mesh->mNormals, GL_STATIC_DRAW);
 			glEnableVertexAttribArray(VSShaderLib::NORMAL_ATTRIB);
-			glVertexAttribPointer(VSShaderLib::NORMAL_ATTRIB, 
+			glVertexAttribPointer(VSShaderLib::NORMAL_ATTRIB,
 				3, GL_FLOAT, 0, 0, 0);
 		}
 
 		// buffer for vertex tangents
 		if (mesh->HasTangentsAndBitangents()) {
-			glGenBuffers(1, &buffer);
-			glBindBuffer(GL_ARRAY_BUFFER, buffer);
-			glBufferData(GL_ARRAY_BUFFER, 
-				sizeof(float)*3*mesh->mNumVertices, mesh->mTangents, 
+			glGenBuffers(1, &aMesh.vboTangent);
+			glBindBuffer(GL_ARRAY_BUFFER, aMesh.vboTangent);
+			glBufferData(GL_ARRAY_BUFFER,
+				sizeof(float)*3*mesh->mNumVertices, mesh->mTangents,
 				GL_STATIC_DRAW);
 			glEnableVertexAttribArray(VSShaderLib::TANGENT_ATTRIB);
-			glVertexAttribPointer(VSShaderLib::TANGENT_ATTRIB, 
+			glVertexAttribPointer(VSShaderLib::TANGENT_ATTRIB,
 				3, GL_FLOAT, 0, 0, 0);
 		}
 
 		// buffer for vertex bitangents
 		if (mesh->HasTangentsAndBitangents()) {
-			glGenBuffers(1, &buffer);
-			glBindBuffer(GL_ARRAY_BUFFER, buffer);
-			glBufferData(GL_ARRAY_BUFFER, 
-				sizeof(float)*3*mesh->mNumVertices, mesh->mBitangents, 
+			glGenBuffers(1, &aMesh.vboBitangent);
+			glBindBuffer(GL_ARRAY_BUFFER, aMesh.vboBitangent);
+			glBufferData(GL_ARRAY_BUFFER,
+				sizeof(float)*3*mesh->mNumVertices, mesh->mBitangents,
 				GL_STATIC_DRAW);
 			glEnableVertexAttribArray(VSShaderLib::BITANGENT_ATTRIB);
-			glVertexAttribPointer(VSShaderLib::BITANGENT_ATTRIB, 
+			glVertexAttribPointer(VSShaderLib::BITANGENT_ATTRIB,
 				3, GL_FLOAT, 0, 0, 0);
 		}
 
@@ -504,18 +511,18 @@ VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 			for (unsigned int k = 0; k < mesh->mNumVertices; ++k) {
 
 				texCoords[k*2]   = mesh->mTextureCoords[0][k].x;
-				texCoords[k*2+1] = mesh->mTextureCoords[0][k].y; 
-				
+				texCoords[k*2+1] = mesh->mTextureCoords[0][k].y;
+
 			}
-			glGenBuffers(1, &buffer);
-			glBindBuffer(GL_ARRAY_BUFFER, buffer);
-			glBufferData(GL_ARRAY_BUFFER, 
-				sizeof(float)*2*mesh->mNumVertices, texCoords, 
+			glGenBuffers(1, &aMesh.vboTexCoord);
+			glBindBuffer(GL_ARRAY_BUFFER, aMesh.vboTexCoord);
+			glBufferData(GL_ARRAY_BUFFER,
+				sizeof(float)*2*mesh->mNumVertices, texCoords,
 				GL_STATIC_DRAW);
 			glEnableVertexAttribArray(
 				VSShaderLib::TEXTURE_COORD_ATTRIB);
 			glVertexAttribPointer(
-				VSShaderLib::TEXTURE_COORD_ATTRIB, 2, 
+				VSShaderLib::TEXTURE_COORD_ATTRIB, 2,
 				GL_FLOAT, 0, 0, 0);
 			free(texCoords);
 		}
@@ -524,21 +531,21 @@ VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 		glBindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER,0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
-	
+
 		// create material uniform buffer
-		struct aiMaterial *mtl = 
+		struct aiMaterial *mtl =
 			sc->mMaterials[mesh->mMaterialIndex];
-			
+
 		aiString texPath;	//contains filename of texture
 
-#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
+#if (__VSL_TEXTURE_LOADING__ == 1)
 		for (int j = 0; j < VSResourceLib::MAX_TEXTURES; ++j)
 			aMesh.texUnits[j] = 0;
 
-		if(AI_SUCCESS == mtl->GetTexture(aiTextureType_DIFFUSE, 
+		if(AI_SUCCESS == mtl->GetTexture(aiTextureType_DIFFUSE,
 											0, &texPath)){
 				//bind texture
-				aMesh.texUnits[0] = 
+				aMesh.texUnits[0] =
 								mTextureIdMap[texPath.data];
 				aMesh.texTypes[0] = GL_TEXTURE_2D;
 				aMat.texCount = 1;
@@ -553,35 +560,35 @@ VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 		float c[4];
 		set_float4(c, 0.8f, 0.8f, 0.8f, 1.0f);
 		aiColor4D diffuse;
-		if(AI_SUCCESS == aiGetMaterialColor(mtl, 
+		if(AI_SUCCESS == aiGetMaterialColor(mtl,
 							AI_MATKEY_COLOR_DIFFUSE, &diffuse))
 			color4_to_float4(&diffuse, c);
 		memcpy(aMat.diffuse, c, sizeof(c));
 
 		set_float4(c, 0.2f, 0.2f, 0.2f, 1.0f);
 		aiColor4D ambient;
-		if(AI_SUCCESS == aiGetMaterialColor(mtl, 
+		if(AI_SUCCESS == aiGetMaterialColor(mtl,
 							AI_MATKEY_COLOR_AMBIENT, &ambient))
 			color4_to_float4(&ambient, c);
 		memcpy(aMat.ambient, c, sizeof(c));
 
 		set_float4(c, 0.0f, 0.0f, 0.0f, 1.0f);
 		aiColor4D specular;
-		if(AI_SUCCESS == aiGetMaterialColor(mtl, 
+		if(AI_SUCCESS == aiGetMaterialColor(mtl,
 							AI_MATKEY_COLOR_SPECULAR, &specular))
 			color4_to_float4(&specular, c);
 		memcpy(aMat.specular, c, sizeof(c));
 
 		set_float4(c, 0.0f, 0.0f, 0.0f, 1.0f);
 		aiColor4D emission;
-		if(AI_SUCCESS == aiGetMaterialColor(mtl, 
+		if(AI_SUCCESS == aiGetMaterialColor(mtl,
 							AI_MATKEY_COLOR_EMISSIVE, &emission))
 			color4_to_float4(&emission, c);
 		memcpy(aMat.emissive, c, sizeof(c));
 
 		float shininess = 0.0;
 		unsigned int max;
-		aiGetMaterialFloatArray(mtl, 
+		aiGetMaterialFloatArray(mtl,
 							AI_MATKEY_SHININESS, &shininess, &max);
 		aMat.shininess = shininess;
 
@@ -603,11 +610,11 @@ VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 #define aisgl_min(x,y) (x<y?x:y)
 #define aisgl_max(x,y) (y>x?y:x)
 
-void 
-VSModelLib::get_bounding_box_for_node (const aiNode* nd, 
-	aiVector3D* min, 
+void
+VSModelLib::get_bounding_box_for_node (const aiNode* nd,
+	aiVector3D* min,
 	aiVector3D* max)
-	
+
 {
 	unsigned int n = 0;
 
@@ -628,20 +635,20 @@ VSModelLib::get_bounding_box_for_node (const aiNode* nd,
 
 
 		for (; n < nd->mNumMeshes; ++n) {
-			const struct aiMesh* mesh = 
+			const struct aiMesh* mesh =
 							mScene->mMeshes[nd->mMeshes[n]];
 			for (unsigned int t = 0; t < mesh->mNumVertices; ++t) {
 
 				aiVector3D tmp = mesh->mVertices[t];
 				float a[4], res[4];
 
-				a[0] = tmp.x; 
-				a[1] = tmp.y; 
-				a[2] = tmp.z; 
+				a[0] = tmp.x;
+				a[1] = tmp.y;
+				a[2] = tmp.z;
 				a[3] = 1.0f;
 
 				mVSML->multMatrixPoint(VSMathLib::AUX0, a, res);
-			
+
 				min->x = aisgl_min(min->x,res[0]);
 				min->y = aisgl_min(min->y,res[1]);
 				min->z = aisgl_min(min->z,res[2]);
@@ -661,9 +668,9 @@ VSModelLib::get_bounding_box_for_node (const aiNode* nd,
 }
 
 
-void 
+void
 VSModelLib::recursive_walk_for_matrices(
-			const struct aiScene *sc, 
+			const struct aiScene *sc,
 			const struct aiNode* nd) {
 
 	mVSML->pushMatrix(VSMathLib::AUX0);
@@ -677,16 +684,16 @@ VSModelLib::recursive_walk_for_matrices(
 		float aux[16];
 		memcpy(aux,&m,sizeof(float) * 16);
 		mVSML->multMatrix(VSMathLib::AUX0, aux);
-	
+
 		// get matrices for all meshes assigned to this node
 		for (unsigned int n = 0; n < nd->mNumMeshes; ++n) {
 
 			if(sc->mMeshes[nd->mMeshes[n]]->mPrimitiveTypes == 4) {
 
 				MyMesh aMesh;
-				memcpy(&aMesh, &(mMyMeshesAux[nd->mMeshes[n]]), 
+				memcpy(&aMesh, &(mMyMeshesAux[nd->mMeshes[n]]),
 											sizeof (aMesh));
-				memcpy(aMesh.transform,mVSML->get(VSMathLib::AUX0), 
+				memcpy(aMesh.transform,mVSML->get(VSMathLib::AUX0),
 											sizeof(float)*16);
 #ifndef __ANDROID_API__
 				if (pUseAdjacency)
@@ -705,9 +712,9 @@ VSModelLib::recursive_walk_for_matrices(
 	mVSML->popMatrix(VSMathLib::AUX0);
 }
 
+#endif
 
-
-void 
+void
 VSModelLib::setColor(VSResourceLib::MaterialSemantics m, float r, float g, float b, float a) {
 
 	float c[4];
@@ -719,7 +726,7 @@ VSModelLib::setColor(VSResourceLib::MaterialSemantics m, float r, float g, float
 void
 VSModelLib::setColor(VSResourceLib::MaterialSemantics m, float *values) {
 
-		if (m == TEX_COUNT)
+	if (m == TEX_COUNT)
 		return;
 
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
@@ -745,7 +752,7 @@ VSModelLib::setColor(VSResourceLib::MaterialSemantics m, float *values) {
 }
 
 
-void 
+void
 VSModelLib::setColor(unsigned int mesh, VSResourceLib::MaterialSemantics m, float *values) {
 
 	if (mesh >= mMyMeshes.size())
@@ -784,12 +791,12 @@ VSModelLib::setMaterialColor(MaterialColors m) {
 		memcpy(mMyMeshes[i].mat.diffuse, &(VSResourceLib::Colors[m][3]), 3*sizeof(float));
 		memcpy(mMyMeshes[i].mat.specular, &(VSResourceLib::Colors[m][6]), 3*sizeof(float));
 		mMyMeshes[i].mat.shininess = VSResourceLib::Colors[m][9];
-	}	
+	}
 }
 
-#if defined(_VSL_TEXTURE_WITH_DEVIL) || defined(__ANDROID_API__)
+#if (__VSL_TEXTURE_LOADING__ == 1)
 
-void 
+void
 VSModelLib::setTexture(unsigned int unit, unsigned int textureID, GLenum textureType) {
 
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
@@ -800,26 +807,26 @@ VSModelLib::setTexture(unsigned int unit, unsigned int textureID, GLenum texture
 }
 
 
-void 
+void
 VSModelLib::addTexture(unsigned int unit, std::string filename) {
 
 	int textID = loadRGBATexture(filename, true);
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
-		mMyMeshes[i].texUnits[unit] = textID;
+		mMyMeshes[i].texUnits[unit] = (GLuint)textID;
 		mMyMeshes[i].texTypes[unit] = GL_TEXTURE_2D;
 		mMyMeshes[i].mat.texCount = 1;
 	}
 }
 
 
-void 
-VSModelLib::addCubeMapTexture(unsigned int unit, std::string posX, std::string negX, 
-									std::string posY, std::string negY, 
+void
+VSModelLib::addCubeMapTexture(unsigned int unit, std::string posX, std::string negX,
+									std::string posY, std::string negY,
 									std::string posZ, std::string negZ) {
 
 	int textID = loadCubeMapTexture(posX, negX, posY, negY, posZ, negZ);
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
-		mMyMeshes[i].texUnits[unit] = textID;
+		mMyMeshes[i].texUnits[unit] = (GLuint)textID;
 		mMyMeshes[i].texTypes[unit] = GL_TEXTURE_CUBE_MAP;
 		mMyMeshes[i].mat.texCount = 1;
 	}
@@ -829,7 +836,7 @@ VSModelLib::addCubeMapTexture(unsigned int unit, std::string posX, std::string n
 #endif
 
 
-void 
+void
 VSModelLib::buildVAO(MyMesh &m, size_t nump, float *p, float *n, float *tc, float *tang, float *bitang, size_t  numInd, unsigned int *ind) {
 
 
@@ -886,12 +893,19 @@ VSModelLib::buildVAO(MyMesh &m, size_t nump, float *p, float *n, float *tc, floa
 }
 
 
+void 
+VSModelLib::addMeshes(const VSModelLib &model) {
+
+	for (auto mesh : model.mMyMeshes) {
+		mMyMeshes.push_back(mesh);
+	}
+}
 
 
 // Auxiliary functions to convert Assimp data to float arays
-void 
-VSModelLib::set_float4(float f[4], 
-					float a, float b, float c, float d)
+void
+VSModelLib::set_float4(float f[4],
+					   float a, float b, float c, float d)
 {
 	f[0] = a;
 	f[1] = b;
@@ -899,10 +913,12 @@ VSModelLib::set_float4(float f[4],
 	f[3] = d;
 }
 
+#if (__VSL_MODEL_LOADING__ == 1)
+
 
 // Auxiliary functions to convert Assimp data to float arays
-void 
-VSModelLib::color4_to_float4(const aiColor4D *c, 
+void
+VSModelLib::color4_to_float4(const aiColor4D *c,
 					float f[4])
 {
 	f[0] = c->r;
@@ -910,3 +926,5 @@ VSModelLib::color4_to_float4(const aiColor4D *c,
 	f[2] = c->b;
 	f[3] = c->a;
 }
+
+#endif

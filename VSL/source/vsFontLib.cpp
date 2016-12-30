@@ -7,21 +7,12 @@ VSMathLib - Very Simple Font Library
 http://www.lighthouse3d.com/very-simple-libs
 
 ----------------------------------------------------*/
-
 #include "vsFontLib.h"
 
-#ifdef _WIN32 
-#ifdef _DEBUG
-#pragma comment(lib,"tinyxmlSTLd.lib")
-#else
-#pragma comment(lib, "tinyxmlSTL.lib")
-#endif
-#endif
+#if (__VSL_FONT_LOADING__ == 1)	
 
 
 // Constructor
-// init Devil
-// grab the singleton for VSMathLib
 VSFontLib::VSFontLib(): VSResourceLib(),
 		mHeight(0), 
 		mNumChars(0), 
@@ -473,3 +464,5 @@ VSFontLib::VSFLSentence::getTexCoordBuffer()
 {
 	return mBuffers[1];
 }
+
+#endif
