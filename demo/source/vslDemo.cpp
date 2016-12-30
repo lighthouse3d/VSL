@@ -50,6 +50,9 @@ VSFontLib vsfl;
 #endif
 
 VSModelLib myModel;
+VSAxis axis;
+VSGrid gridY;
+
 unsigned int aSentence, profileSentence;
 
 // Query to track the number of primitives
@@ -75,18 +78,7 @@ char s[32];
 float lightDir[4] = { 1.0f, 1.0f, 1.0f, 0.0f };
 
 
-VSAxis axis;
-VSSimpleAxis simpleAxis;
-VSVector vector;
-VSGrid gridX, gridY; 
-VSCubicPatch bezierP;
-VSCubicCurve bezierC, catmullRomC;
-VSPoint p1, p2;
-VSPolyLine polyLine;
-VSDashedArc dashedArc;
-VSDashedLine dashedLine;
-VSGeomConstruction convexHull, project;
-
+ 
 
 
 // ------------------------------------------------------------
@@ -143,24 +135,16 @@ void renderScene(void) {
 			// start counting primitives
 			glBeginQuery(GL_PRIMITIVES_GENERATED, counterQ);
 			// render array of models
-			//for (float x = -2.0f ; x < 3.0f ; x += 2.0f) {
-			//	for (float z = -2.0f; z < 3.0f ; z += 2.0f) {
-			//		vsml->pushMatrix(VSMathLib::MODEL);
-			//		vsml->translate(VSMathLib::MODEL, x, 0.0f, z);
-			//		myModel.render();
-			//		vsml->popMatrix(VSMathLib::MODEL);
-			//	}
-			//}
+			for (float x = -2.0f ; x < 3.0f ; x += 2.0f) {
+				for (float z = -2.0f; z < 3.0f ; z += 2.0f) {
+					vsml->pushMatrix(VSMathLib::MODEL);
+					vsml->translate(VSMathLib::MODEL, x, 0.0f, z);
+					myModel.render();
+					vsml->popMatrix(VSMathLib::MODEL);
+				}
+			}
 			axis.render();
-			gridX.render();
 			gridY.render();
-			bezierC.render();
-			//p1.render();
-			//p2.render();
-			//vector.render();
-			bezierP.render();
-			convexHull.render();
-
 
 			// stop counting primitives
 			glEndQuery(GL_PRIMITIVES_GENERATED);
@@ -405,69 +389,10 @@ int init()
 
 		printf("%s\n",myModel.getInfo().c_str());
 
-		float red[4] = { 1,0,0, 1 };
-		float blue[4] = { 0,0,1,1 };
-		float green[4] = { 0,1,0,1 };
-		float lightGrey[4] = { 0.75f, 0.75f ,0.75f,1 };
-		float grey[4] = { 0.5f, 0.5f ,0.5f,1 };
-		p1.set(Point3(1, 1, 1));
-		p1.setColor(VSResourceLib::DIFFUSE, blue);
-		p2.set(Point3(1, 0, 1));
-		p2.setColor(VSResourceLib::DIFFUSE, green);
 
-		axis.set(1, 0.02);
+		axis.set(5, 0.02);
 		
-		vector.set(Point3(0, 0, 0), Point3(1, 1, 1));
-
-		gridY.set(VSGrid::Y, 1, 8);
-		gridX.set(VSGrid::Z, 1, 8);
-		gridX.setColor(VSResourceLib::EMISSIVE, grey);
-
-		std::vector<Point3> ppp = {
-			Point3(-1, -1, 0),
-			Point3(1, -1, 0),
-			Point3(0.5f, 0, 0),
-			Point3(1,1,0),
-			Point3(-1, 1, 0)
-		};
-		catmullRomC.set(ppp, 10, true);
-		catmullRomC.setColor(VSResourceLib::EMISSIVE, green);
-
-		bezierC.set(ppp, 10);
-		bezierC.setType(VSCubicCurve::BEZIER);
-		bezierC.setColor(VSResourceLib::EMISSIVE, red);
-
-		std::vector<Point3> pppp = {
-			Point3(0,0,0),
-			Point3(0.33,0.25,0),
-			Point3(0.66, 0.25,0),
-			Point3(1, 0, 0),
-
-			Point3(0, 0.25,0.33),
-			Point3(0.33, 0.75,0.33),
-			Point3(0.66, 0.75,0.33),
-			Point3(1, 0.25,0.33),
-
-			Point3(0, 0.25, 0.66),
-			Point3(0.33, 0.75, 0.66),
-			Point3(0.66, 0.75, 0.66),
-			Point3(1, 0.25, 0.66),
-
-			Point3(0, 0,  1),
-			Point3(0.33, 0.25,1),
-			Point3(0.66, 0.25,1),
-			Point3(1, 0,  1),
-		};
-		bezierP.set(pppp, 16);
-
-		bezierP.setColor(VSResourceLib::DIFFUSE, lightGrey);
-		bezierP.addTexture(0, "../../models/deck1b.jpg");
-
-		convexHull.cubicPatchConvexHull(bezierP);
-		convexHull.cubicPatchNormalField(bezierP, 4, 0.1);
-		convexHull.setColor(VSResourceLib::EMISSIVE, green);
-
-
+		gridY.set(VSGrid::Y, 5, 25);
 		// some GL settings
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
