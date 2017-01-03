@@ -4,20 +4,17 @@ file(GLOB vslSource
 file(GLOB vslHeaders
 	"include/vsl/*.h")	
 
-
-	
 configure_file (
   "${CMAKE_CURRENT_SOURCE_DIR}/include/vslConfig.h.in"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/vsl/vslConfig.h"
-  )	
-	
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/vsl/vslConfig.h")	
 	
 add_library(vsl  STATIC
 	${vslSource} ${vslHeaders})
 	
 source_group("Header Files" FILES ${vslHeaders})
 
-target_include_directories(vsl PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/vsl")
+target_include_directories(vsl 
+	PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/vsl")
 
 include_directories(
 	../contrib/devil/
@@ -25,9 +22,6 @@ include_directories(
 	../contrib/glew
 	../contrib/tinyxml)
 	
-	
-target_link_libraries(vsl glew tinyxml ${OpenGL_LIBRARY_DIRS})
-
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 add_definitions(-DTIXML_USE_STL)
 

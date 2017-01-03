@@ -1,11 +1,9 @@
 add_executable(demo 
 	source/vslDemo.cpp)
 	
-LINK_DIRECTORIES(
-  ${Assimp_BINARY_DIR}
-)
+LINK_DIRECTORIES(${Assimp_BINARY_DIR})
 	
-target_link_libraries(demo vsl tinyxml freeglut assimp glew)
+target_link_libraries(demo vsl tinyxml freeglut_static assimp glew)
 target_link_libraries(demo ${OPENGL_LIBRARIES} )
 
 include_directories(
@@ -17,19 +15,19 @@ include_directories(
 	../contrib/glew
 	${OpenGL_INCLUDE_DIRS})
 	
-add_definitions(-DTIXML_USE_STL)
+add_definitions(-DTIXML_USE_STL -DFREEGLUT_STATIC)
 	
 	
 if  (WIN32)
 	add_definitions(-DGLEW_BUILD)
-	file(COPY  ${CMAKE_CURRENT_SOURCE_DIR}/../contrib/devil/IL DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../bin/include)	
+	file(COPY  ${CMAKE_CURRENT_SOURCE_DIR}/../contrib/devil/IL DESTINATION ${CMAKE_CMAKE_BINARY_DIR}/include)	
 	if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
 		file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../contrib/devil/lib64/DevIL.dll 
-			DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../bin/bin)
+			DESTINATION ${CMAKE_BINARY_DIR}/bin)
 		target_link_libraries(demo "../../contrib/devil/lib64/DevIL")
 	else()
 		file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../contrib/devil/lib32/DevIL.dll 
-			DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../bin/bin)
+			DESTINATION ${CMAKE_BINARY_DIR}/bin)
 		target_link_libraries(demo "../../contrib/devil/lib32/DevIL")
 	endif( CMAKE_SIZEOF_VOID_P EQUAL 8 )
 else()
