@@ -7,7 +7,7 @@ target_link_libraries(demo vsl tinyxml freeglut_static assimp glew)
 target_link_libraries(demo ${OPENGL_LIBRARIES} )
 
 include_directories(
-	../vsl/include
+	../VSL/include
 	../contrib/freeglut-3.0.0/include
 	../contrib/assimp3.3.1/include
 	../contrib/devil/

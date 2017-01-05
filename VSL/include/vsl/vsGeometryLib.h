@@ -107,6 +107,18 @@ public:
 		return res;
 	};
 
+	Point3 operator- (const Point3 &p) {
+		Point3 res;
+		res.x = x - p.x;
+		res.y = y - p.y;
+		res.z = z - p.z;
+		return res;
+	};
+
+	Point3 operator- () {
+		return Point3(-x, -y, -z);
+	};
+
 	Point3() {
 		x = 0.0f; y = 0.0f; z = 0.0f;
 	};
@@ -183,13 +195,14 @@ public:
 
 	VSAxis();
 
-	void set(float length = 1.0f, float radius = 0.01f);
+	void set(float length = 1.0f, bool positiveOnly = true, float radius = 0.01f);
 
 protected:
 	VSVector mX, mY, mZ;
 	VSPoint mP;
 	float mLength;
 	float mRadius;
+	bool mPositiveOnly;
 
 	void prepare();
 };
@@ -251,10 +264,11 @@ public:
 
 	VSPolyLine();
 
-	void set(const std::vector<Point3> &polyLine);
+	void set(const std::vector<Point3> &polyLine, bool mLoop = false);
 
 protected:
-	std::vector<Point3> m_PolyLine;
+	std::vector<Point3> mPolyLine;
+	bool mLoop;
 
 	void prepare();
 };
@@ -291,7 +305,7 @@ public:
 
 	VSDashedArc();
 
-	void set(float angle, float radius, float dashInterval = 0.05f);
+	void set(float angleDegrees, float radius, float dashInterval = 0.05f);
 
 protected:
 	float mAngle, mRadius;

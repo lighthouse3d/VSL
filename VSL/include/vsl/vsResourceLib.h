@@ -83,7 +83,6 @@
 class VSResourceLib {
 
 public:
-//protected:
 
 	/// helper structure for derived classes
 	struct Material{
@@ -95,8 +94,6 @@ public:
 		float shininess;
 		int texCount;
 	};
-
-public:
 
 	/// material semantics
 	enum MaterialSemantics {

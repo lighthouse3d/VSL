@@ -338,14 +338,16 @@ VSGrid::prepare() {
 ------------------------------------------------- */
 
 
-VSAxis::VSAxis() : mLength(1.0f), mRadius(0.01f) { }
+VSAxis::VSAxis() : mLength(1.0f), mRadius(0.01f), mPositiveOnly(true) { }
 
 
 void
-VSAxis::set(float length, float radius) {
+VSAxis::set(float length, bool positiveOnly, float radius) {
 	
 	mLength = length;
 	mRadius = radius;
+	mPositiveOnly = positiveOnly;
+
 
 	prepare();
 }
@@ -371,7 +373,10 @@ VSAxis::prepare() {
 	float grey[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
 	float greyA[4] = { 0.125f, 0.125f, 0.125f, 1.0f };
 
-	mX.set(origin, px);
+	if (mPositiveOnly)
+		mX.set(origin, px);
+	else
+		mX.set(-px, px);
 	addMeshes(mX);
 	memcpy(mMyMeshes[0].mat.specular, white, sizeof(float) * 4);
 	memcpy(mMyMeshes[0].mat.diffuse, red, sizeof(float) * 4);
@@ -381,7 +386,10 @@ VSAxis::prepare() {
 	memcpy(mMyMeshes[1].mat.diffuse, red, sizeof(float) * 4);
 	memcpy(mMyMeshes[1].mat.ambient, red, sizeof(float) * 4);
 
-	mY.set(origin, py);
+	if (mPositiveOnly)
+		mY.set(origin, py);
+	else
+		mY.set(-py, py);
 	addMeshes(mY);
 	memcpy(mMyMeshes[2].mat.specular, white, sizeof(float) * 4);
 	memcpy(mMyMeshes[2].mat.diffuse, green, sizeof(float) * 4);
@@ -391,7 +399,10 @@ VSAxis::prepare() {
 	memcpy(mMyMeshes[3].mat.diffuse, green, sizeof(float) * 4);
 	memcpy(mMyMeshes[3].mat.ambient, green, sizeof(float) * 4);
 
-	mZ.set(origin, pz);
+	if (mPositiveOnly)
+		mZ.set(origin, pz);
+	else
+		mZ.set(-pz, pz);
 	addMeshes(mZ);
 	memcpy(mMyMeshes[4].mat.specular, white, sizeof(float) * 4);
 	memcpy(mMyMeshes[4].mat.diffuse, blue, sizeof(float) * 4);
@@ -451,9 +462,10 @@ VSPolyLine::VSPolyLine() {}
 
 
 void 
-VSPolyLine::set(const std::vector<Point3> &polyLine) {
+VSPolyLine::set(const std::vector<Point3> &polyLine, bool loop) {
 
-	m_PolyLine = polyLine;
+	mPolyLine = polyLine;
+	mLoop = loop;
 	prepare();
 }
 
@@ -464,12 +476,19 @@ VSPolyLine::prepare() {
 	mMyMeshes.resize(1);
 
 	std::vector<float> pp;
-	for (unsigned int i = 0; i < m_PolyLine.size(); ++i) {
-		pp.push_back(m_PolyLine[i].x); pp.push_back(m_PolyLine[i].y); pp.push_back(m_PolyLine[i].z);
+	for (unsigned int i = 0; i < mPolyLine.size(); ++i) {
+		pp.push_back(mPolyLine[i].x); pp.push_back(mPolyLine[i].y); pp.push_back(mPolyLine[i].z);
 		pp.push_back(1.0f);
 	}
-	size_t numP = m_PolyLine.size();
-	buildVAO(mMyMeshes[0], m_PolyLine.size(), (float *)&(pp[0]), NULL, NULL, NULL, NULL, 0, NULL);
+	if (mLoop) {
+		pp.push_back(mPolyLine[0].x); pp.push_back(mPolyLine[0].y); pp.push_back(mPolyLine[0].z);
+		pp.push_back(1.0f);
+	}
+
+	size_t numP = mPolyLine.size();
+	if (mLoop)
+		numP++;
+	buildVAO(mMyMeshes[0], numP, (float *)&(pp[0]), NULL, NULL, NULL, NULL, 0, NULL);
 
 	memcpy(mMyMeshes[0].transform, sIdentityMatrix, sizeof(float) * 16);
 	mMyMeshes[0].type = GL_LINE_STRIP;
@@ -579,7 +598,7 @@ VSDashedArc::prepare() {
 	p.push_back(mRadius * sin(angStep * (i - 1))); p.push_back(0); p.push_back(mRadius * cos(angStep * (i - 1))); p.push_back(1.0f);
 	p.push_back(mRadius * sin(angRad)); p.push_back(0); p.push_back(mRadius * cos(angRad)); p.push_back(1.0f);
 
-	mMyMeshes.resize(0);
+	mMyMeshes.resize(1);
 	buildVAO(mMyMeshes[0], p.size() / 4, &(p[0]), NULL, NULL, NULL, NULL, 0, NULL);
 
 	memcpy(mMyMeshes[0].transform, sIdentityMatrix, sizeof(float) * 16);
