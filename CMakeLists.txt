@@ -12,7 +12,7 @@ if(WIN32)
 	set(CMAKE_DEBUG_POSTFIX "d") 
 endif(WIN32)
 
-set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/bin")
+set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/bin")
 
 #define settings for VS solution
 if (WIN32)

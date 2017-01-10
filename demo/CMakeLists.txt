@@ -1,5 +1,5 @@
 add_executable(demo 
-	source/vslDemo.cpp)
+	source/vslDemo.cpp source/config.h)
 	
 LINK_DIRECTORIES(${Assimp_BINARY_DIR})
 	
@@ -16,7 +16,13 @@ include_directories(
 	${OpenGL_INCLUDE_DIRS})
 	
 add_definitions(-DTIXML_USE_STL -DFREEGLUT_STATIC)
-	
+
+set(PATH_TO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../")
+
+configure_file (
+  "${CMAKE_CURRENT_SOURCE_DIR}/config.h.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/source/config.h"
+  )	
 	
 if  (WIN32)
 	add_definitions(-DGLEW_BUILD)

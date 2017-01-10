@@ -41,6 +41,7 @@
 // Use Very Simple Libs
 #include <vsl/vslibs.h>
 
+#include "config.h"
 
 VSMathLib *vsml;
 VSShaderLib program, programFonts;
@@ -331,10 +332,11 @@ void mouseWheel(int wheel, int direction, int x, int y) {
 
 GLuint setupShaders() {
 
+	std::string path = PATH_TO_FILES;
 	// Shader for fonts
 	programFonts.init();
-	programFonts.loadShader(VSShaderLib::VERTEX_SHADER, "../../shaders/color.vert");
-	programFonts.loadShader(VSShaderLib::FRAGMENT_SHADER, "../../shaders/color.frag");
+	programFonts.loadShader(VSShaderLib::VERTEX_SHADER, path + "shaders/color.vert");
+	programFonts.loadShader(VSShaderLib::FRAGMENT_SHADER, path + "shaders/color.frag");
 
 	// set semantics for the shader variables
 	programFonts.setProgramOutput(0,"outputF");
@@ -353,8 +355,8 @@ GLuint setupShaders() {
 
 	// Shader formodels
 	program.init();
-	program.loadShader(VSShaderLib::VERTEX_SHADER, "../../shaders/pixeldirdifambspec.vert");
-	program.loadShader(VSShaderLib::FRAGMENT_SHADER, "../../shaders/pixeldirdifambspec.frag");
+	program.loadShader(VSShaderLib::VERTEX_SHADER, path + "shaders/pixeldirdifambspec.vert");
+	program.loadShader(VSShaderLib::FRAGMENT_SHADER, path + "shaders/pixeldirdifambspec.frag");
 
 	// set semantics for the shader variables
 	program.setProgramOutput(0, "colorOut");
@@ -385,7 +387,9 @@ GLuint setupShaders() {
 int init()
 {
 	// load models
-	if (myModel.load("../../models/fonte-finallambert.dae")) {
+	std::string modelFile = PATH_TO_FILES;
+	modelFile += "models/fonte-finallambert.dae";
+	if (myModel.load(modelFile)) {
 
 		printf("%s\n",myModel.getInfo().c_str());
 
@@ -428,7 +432,8 @@ void initVSL() {
 #if (__VSL_TEXTURE_LOADING__ == 1)
 
 	// Init VSFL Fonts
-	vsfl.load("../../fonts/couriernew10");
+	std::string path = PATH_TO_FILES;
+	vsfl.load(path + "fonts/couriernew10");
 	vsfl.setFixedFont(true);
 	vsfl.setColor(1.0f, 0.5f, 0.25f, 1.0f);
 	aSentence = vsfl.genSentence();
