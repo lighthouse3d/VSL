@@ -342,7 +342,7 @@ VSAxis::VSAxis() : mLength(1.0f), mRadius(0.01f), mPositiveOnly(true) { }
 
 
 void
-VSAxis::set(float length, bool positiveOnly, float radius) {
+VSAxis::set(float length, float radius, bool positiveOnly) {
 	
 	mLength = length;
 	mRadius = radius;

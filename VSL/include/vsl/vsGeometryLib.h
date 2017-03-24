@@ -195,7 +195,7 @@ public:
 
 	VSAxis();
 
-	void set(float length = 1.0f, bool positiveOnly = true, float radius = 0.01f);
+	void set(float length = 1.0f, float radius = 0.01f, bool positiveOnly = true);
 
 protected:
 	VSVector mX, mY, mZ;

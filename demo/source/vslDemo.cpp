@@ -394,7 +394,7 @@ int init()
 		printf("%s\n",myModel.getInfo().c_str());
 
 
-		axis.set(5, 0.02);
+		axis.set(5, 0.02f);
 		
 		gridY.set(VSGrid::Y, 5, 25);
 		// some GL settings
