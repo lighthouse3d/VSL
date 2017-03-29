@@ -835,6 +835,38 @@ VSModelLib::addCubeMapTexture(unsigned int unit, std::string posX, std::string n
 
 #endif
 
+void 
+VSModelLib::addMesh(size_t nump, float *p, float *n, float *tc, float *tang, float *bitan, size_t numInd, unsigned int *indices) {
+
+	MyMesh m;
+	buildVAO(m, nump, p, n, tc, tang, bitan, numInd, indices);
+	mVSML->pushMatrix(VSMathLib::AUX0);
+	mVSML->loadIdentity(VSMathLib::AUX0);
+	memcpy(m.transform, mVSML->get(VSMathLib::AUX0), 16 * sizeof(float));
+	mVSML->popMatrix(VSMathLib::AUX0);
+	mMyMeshes.push_back(m);
+}
+
+
+void
+VSModelLib::setMesh(int i, size_t nump, float *p, float *n, float *tc, float *tang, float *bitan, size_t numInd, unsigned int *indices) {
+
+	if (mMyMeshes.size() >= i)
+		return;
+	MyMesh &m = mMyMeshes[i];
+
+	if (m.vao != 0) {
+		glDeleteVertexArrays(1, &(m.vao));
+		glDeleteBuffers(1, &m.vboPos);
+		glDeleteBuffers(1, &m.vboNormal);
+		glDeleteBuffers(1, &m.vboTexCoord);
+		glDeleteBuffers(1, &m.vboTangent);
+		glDeleteBuffers(1, &m.vboBitangent);
+		glDeleteBuffers(1, &m.vboIndices);
+	}
+	buildVAO(m, nump, p, n, tc, tang, bitan, numInd, indices);
+}
+
 
 void
 VSModelLib::buildVAO(MyMesh &m, size_t nump, float *p, float *n, float *tc, float *tang, float *bitang, size_t  numInd, unsigned int *ind) {

@@ -174,6 +174,8 @@ public:
 	std::vector<MyMesh> mMyMeshes;
 
 	void addMeshes(const VSModelLib &model);
+	void addMesh(size_t nump, float *p, float *n, float *tc, float *tang, float *bitan, size_t numInd, unsigned int *indices);
+	void setMesh(int i, size_t nump, float *p, float *n, float *tc, float *tang, float *bitan, size_t numInd, unsigned int *indices);
 
 protected:
 	void buildVAO(MyMesh &m, size_t nump, float *p, float *n, float *tc, float *tang, float *bitan, size_t numInd, unsigned int *indices);
