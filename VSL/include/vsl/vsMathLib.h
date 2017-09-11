@@ -70,8 +70,8 @@ class VSMathLib {
 		/// number of settable matrices
 		#define COUNT_MATRICES 11
 		/// number of derived matrices
-		#define COUNT_COMPUTED_MATRICES 5
-		#define COUNT_COMPUTED_4x4_MATRICES 2
+		#define COUNT_COMPUTED_MATRICES 7
+		#define COUNT_COMPUTED_4x4_MATRICES 4
 
 
 		/// Enumeration of the matrix types
@@ -92,6 +92,8 @@ class VSMathLib {
 		enum ComputedMatrixTypes {
 			VIEW_MODEL,
 			PROJ_VIEW_MODEL,
+			PROJ_VIEW,
+			VIEW_INV,
 			NORMAL,
 			NORMAL_VIEW,
 			NORMAL_MODEL
@@ -274,6 +276,11 @@ class VSMathLib {
 		*/
 		void invert(MatrixTypes aType);
 
+		/** Inverts a matrix
+		*
+		* \param mat : a float 16 array
+		*/
+		void invert(float *mat);
 
 		/** Computes the position of the camera based on the view matrix
 		*

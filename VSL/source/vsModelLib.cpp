@@ -42,16 +42,13 @@ static const char* kTAG = "vsModelLib.cpp";
 #define LOGD(...) \
   ((void)__android_log_print(ANDROID_LOG_DEBUG, kTAG, __VA_ARGS__))
 #endif
-#if (__VSL_MODEL_LOADING__ == 1) && defined(__ANDROID_API__)
-Assimp::Importer *VSModelLib::s_Importer = NULL;
-#endif
 
 
 
 
 VSModelLib::VSModelLib():pUseAdjacency(false) {
 
-#if (__VSL_MODEL_LOADING__ == 1)
+#if defined(__VSL_MODEL_LOADING__)
 
 	mScene = NULL;
 #endif
@@ -64,7 +61,7 @@ VSModelLib::VSModelLib():pUseAdjacency(false) {
 VSModelLib::~VSModelLib() {
 
 	for (unsigned int i = 0; i < mMyMeshes.size(); ++i) {
-		//glDeleteVertexArrays(1,&(mMyMeshes[i].vao));
+		glDeleteVertexArrays(1,&(mMyMeshes[i].vao));
 		glDeleteBuffers(1, &(mMyMeshes[i].vboPos));
 		glDeleteBuffers(1, &(mMyMeshes[i].vboNormal));
 		glDeleteBuffers(1, &(mMyMeshes[i].vboTangent));
@@ -84,14 +81,6 @@ VSModelLib::~VSModelLib() {
 }
 
 
-#if (__VSL_MODEL_LOADING__ == 1) && defined(__ANDROID_API__)
-void
-VSModelLib::SetImporter(Assimp::Importer *imp) {
-	s_Importer = imp;
-}
-#endif
-
-
 void
 VSModelLib::setGenerationMode(int mode) {
 
@@ -106,7 +95,7 @@ VSModelLib::getGenerationMode() {
 }
 
 
-#if (__VSL_MODEL_LOADING__ == 1)
+#if defined(__VSL_MODEL_LOADING__)
 
 bool
 VSModelLib::load(std::string filename) {
@@ -142,7 +131,7 @@ VSModelLib::load(std::string filename) {
 	std::string prefix = filename.substr(0, index+1);
 
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#if defined(__VSL_TEXTURE_LOADING__)
 
 	mTextureIdMap.clear();
 	bool result = loadTextures(mScene, prefix);
@@ -204,7 +193,7 @@ VSModelLib::load(std::string filename) {
 		mVSML->popMatrix(mVSML->AUX0);
 	}
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#if defined(__VSL_TEXTURE_LOADING__)
 	// clear texture map
 	mTextureIdMap.clear();
 	return result;
@@ -217,7 +206,7 @@ VSModelLib::load(std::string filename) {
 
 
 void
-VSModelLib::render () {
+VSModelLib::render (int instances) {
 
 	mVSML->pushMatrix(VSMathLib::MODEL);
 	//mVSML->scale(mScaleToUnitCube, mScaleToUnitCube, mScaleToUnitCube);
@@ -233,7 +222,7 @@ VSModelLib::render () {
 		// set material
 		setMaterial(mMyMeshes[i].mat);
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#if defined(__VSL_TEXTURE_LOADING__)
 
 		// bind texture
 		for (unsigned int j = 0; j < VSResourceLib::MAX_TEXTURES; ++j) {
@@ -246,13 +235,22 @@ VSModelLib::render () {
 #endif
 		// bind VAO
 		glBindVertexArray(mMyMeshes[i].vao);
-		if (mMyMeshes[i].hasIndices)
-			glDrawElements(mMyMeshes[i].type,
-						   mMyMeshes[i].numIndices, GL_UNSIGNED_INT, 0);
-		else
-			glDrawArrays(mMyMeshes[i].type, 0, mMyMeshes[i].numIndices);
+		if (mMyMeshes[i].hasIndices) {
+			if (instances == 0)
+				glDrawElements(mMyMeshes[i].type,
+					mMyMeshes[i].numIndices, GL_UNSIGNED_INT, 0);
+			else
+				glDrawElementsInstanced(mMyMeshes[i].type,
+					mMyMeshes[i].numIndices, GL_UNSIGNED_INT, 0, instances);
+		}
+		else {
+			if (instances == 0)
+				glDrawArrays(mMyMeshes[i].type, 0, mMyMeshes[i].numIndices);
+			else
+				glDrawArraysInstanced(mMyMeshes[i].type, 0, mMyMeshes[i].numIndices, 0);
+		}
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#if defined(__VSL_TEXTURE_LOADING__)
 		for (unsigned int j = 0; j < VSResourceLib::MAX_TEXTURES; ++j) {
 			if (mMyMeshes[i].texUnits[j] != 0) {
 				glActiveTexture(GL_TEXTURE0 + j);
@@ -266,7 +264,7 @@ VSModelLib::render () {
 	mVSML->popMatrix(VSMathLib::MODEL);
 }
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#if defined(__VSL_TEXTURE_LOADING__)
 
 // Load model textures
 bool
@@ -322,7 +320,7 @@ VSModelLib::loadTextures(const aiScene* scene,
 
 #endif
 
-#if (__VSL_MODEL_LOADING__ == 1)
+#if defined(__VSL_MODEL_LOADING__)
 
 void
 VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
@@ -538,7 +536,7 @@ VSModelLib::genVAOsAndUniformBuffer(const struct aiScene *sc) {
 
 		aiString texPath;	//contains filename of texture
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#if defined(__VSL_TEXTURE_LOADING__)
 		for (int j = 0; j < VSResourceLib::MAX_TEXTURES; ++j)
 			aMesh.texUnits[j] = 0;
 
@@ -794,7 +792,7 @@ VSModelLib::setMaterialColor(MaterialColors m) {
 	}
 }
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#if defined(__VSL_TEXTURE_LOADING__)
 
 void
 VSModelLib::setTexture(unsigned int unit, unsigned int textureID, GLenum textureType) {
@@ -835,7 +833,7 @@ VSModelLib::addCubeMapTexture(unsigned int unit, std::string posX, std::string n
 
 #endif
 
-void 
+int 
 VSModelLib::addMesh(size_t nump, float *p, float *n, float *tc, float *tang, float *bitan, size_t numInd, unsigned int *indices) {
 
 	MyMesh m;
@@ -845,13 +843,14 @@ VSModelLib::addMesh(size_t nump, float *p, float *n, float *tc, float *tang, flo
 	memcpy(m.transform, mVSML->get(VSMathLib::AUX0), 16 * sizeof(float));
 	mVSML->popMatrix(VSMathLib::AUX0);
 	mMyMeshes.push_back(m);
+	return (int)(mMyMeshes.size() - 1);
 }
 
 
 void
 VSModelLib::setMesh(int i, size_t nump, float *p, float *n, float *tc, float *tang, float *bitan, size_t numInd, unsigned int *indices) {
 
-	if (mMyMeshes.size() >= i)
+	if (mMyMeshes.size() >= (unsigned int)i)
 		return;
 	MyMesh &m = mMyMeshes[i];
 
@@ -945,7 +944,7 @@ VSModelLib::set_float4(float f[4],
 	f[3] = d;
 }
 
-#if (__VSL_MODEL_LOADING__ == 1)
+#if defined(__VSL_MODEL_LOADING__)
 
 
 // Auxiliary functions to convert Assimp data to float arays

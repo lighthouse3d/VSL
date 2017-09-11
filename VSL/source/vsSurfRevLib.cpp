@@ -211,8 +211,7 @@ VSSurfRevLib::create (float *p, int numP, int sides, int closed, float smoothCos
 	computeVAO(totalPoints-2, &(points[2]), &(points[0]), sides, smoothCos);
 }
 
-
-void 
+/*void 
 VSSurfRevLib::computeVAO(int numP, float *p, float *points, int sides, float smoothCos) {
 	// Compute and store vertices
 
@@ -320,6 +319,206 @@ VSSurfRevLib::computeVAO(int numP, float *p, float *points, int sides, float smo
 					float t[3]; float *n = (float *)&(normal[((k)*(numSides + 1) + j) * 3]);
 					if (fabs(VSMathLib::dotProduct(y, n)) > 0.98) {
 						t[0] = sinf(-j*inc + delta); t[1] = 0; t[2] = -cosf(j*inc + delta);
+					}
+					else {
+						VSMathLib::crossProduct(y, n, t);
+					}
+					tangent[((k)*(numSides + 1) + j) * 3] = t[0];
+					tangent[((k)*(numSides + 1) + j) * 3 + 1] = t[1];
+					tangent[((k)*(numSides + 1) + j) * 3 + 2] = t[2];
+
+
+					float bt[3];
+					VSMathLib::crossProduct(t, n, bt);
+					bitangent[((k)*(numSides + 1) + j) * 3] = bt[0];
+					bitangent[((k)*(numSides + 1) + j) * 3 + 1] = bt[1];
+					bitangent[((k)*(numSides + 1) + j) * 3 + 2] = bt[2];
+
+					// find bounding box
+					if (vertex[((k)*(numSides+1) + j)*4] < bb[0][0]) 
+						bb[0][0] = vertex[((k)*(numSides+1) + j)*4];
+					if (vertex[((k)*(numSides+1) + j)*4] > bb[1][0]) 
+						bb[1][0] = vertex[((k)*(numSides+1) + j)*4];
+
+					if (vertex[((k)*(numSides+1) + j)*4+1] < bb[0][1]) 
+						bb[0][1] = vertex[((k)*(numSides+1) + j)*4+1];
+					if (vertex[((k)*(numSides+1) + j)*4+1] > bb[1][1]) 
+						bb[1][1] = vertex[((k)*(numSides+1) + j)*4+1];
+
+					if (vertex[((k)*(numSides+1) + j)*4+2] < bb[0][2]) 
+						bb[0][2] = vertex[((k)*(numSides+1) + j)*4+2];
+					if (vertex[((k)*(numSides+1) + j)*4+2] > bb[1][2]) 
+						bb[1][2] = vertex[((k)*(numSides+1) + j)*4+2];
+				}
+				k++;
+			}
+			else
+				smoothness.push_back(0);
+		}
+	}
+
+	bbInit = true;
+
+	std::vector<unsigned int> faceIndex;
+	faceIndex.resize((numP - 1) * (numSides + 1) * 6);
+	int count = 0;
+	k = 0;
+	for (int i = 0; i < numP-1; ++i) {
+		for (int j = 0; j < numSides; ++j) {
+		
+		 {
+	faceIndex[count++] = (unsigned int)(k * (numSides + 1) + j);
+	faceIndex[count++] = (unsigned int)((k + 1) * (numSides + 1) + j + 1);
+	faceIndex[count++] = (unsigned int)((k + 1) * (numSides + 1) + j);
+}
+ {
+	faceIndex[count++] = (unsigned int)(k * (numSides + 1) + j);
+	faceIndex[count++] = (unsigned int)(k * (numSides + 1) + j + 1);
+	faceIndex[count++] = (unsigned int)((k + 1) * (numSides + 1) + j + 1);
+}
+
+		}
+		k++;
+		k += smoothness[i];
+	}
+
+	MyMesh aMesh;
+
+	buildVAO(aMesh, (k + 1)*(numSides + 1), &(vertex[0]), &(normal[0]), &(textco[0]), &(tangent[0]), &(bitangent[0]), count, &(faceIndex[0]));
+
+	aMesh.type = GL_TRIANGLES;
+	aMesh.mat.ambient[0] = 0.2f;
+	aMesh.mat.ambient[1] = 0.2f;
+	aMesh.mat.ambient[2] = 0.2f;
+	aMesh.mat.ambient[3] = 1.0f;
+
+	aMesh.mat.diffuse[0] = 0.8f;
+	aMesh.mat.diffuse[1] = 0.8f;
+	aMesh.mat.diffuse[2] = 0.8f;
+	aMesh.mat.diffuse[3] = 1.0f;
+
+	aMesh.mat.specular[0] = 0.8f;
+	aMesh.mat.specular[1] = 0.8f;
+	aMesh.mat.specular[2] = 0.8f;
+	aMesh.mat.specular[3] = 1.0f;
+
+	aMesh.mat.shininess = 100.0f;
+	aMesh.mat.texCount = 0;
+
+	mVSML->loadIdentity(VSMathLib::AUX0);
+	memcpy(aMesh.transform, mVSML->get(VSMathLib::AUX0),
+		sizeof(float) * 16);
+
+	mMyMeshes.push_back(aMesh);
+}*/
+void 
+VSSurfRevLib::computeVAO(int numP, float *p, float *points, int sides, float smoothCos) {
+	// Compute and store vertices
+
+	int numSides = sides;
+	int numPoints = numP + 2;
+
+	std::vector<float> vertex, normal, textco, tangent, bitangent;
+	vertex.resize(numP * 2 * 4 * (numSides + 1));
+	normal.resize(numP * 2 * 3 * (numSides + 1));
+	textco.resize(numP * 2 * 2 * (numSides + 1));
+	tangent.resize(numP * 2 * 3 * (numSides + 1));
+	bitangent.resize(numP * 2 * 3 * (numSides + 1));
+
+	float inc = 2 * 3.14159f / (numSides);
+	float nx,ny;
+	float delta;
+	int smooth;
+	std::vector<int> smoothness;
+	int k = 0;
+	float y[3] = { 0.0f, 1.0f, 0.0f };
+	float z[3] = { 0.0f, 0.0f, 1.0f };
+
+	// init bounding box
+	for(int i = 0; i < 3; ++i) {
+		bb[1][i] = -FLT_MAX;
+		bb[0][i] = FLT_MAX;
+	}
+
+	for(int i=0; i < numP; i++) {
+		revSmoothNormal2(points+(i*2),&nx,&ny, smoothCos, 0);
+		for(int j=0; j<=numSides;j++) {
+
+			if ((i == 0 && p[0] == 0.0f) || ( i == numP-1 && p[(i+1)*2] == 0.0))
+				delta = inc * 0.5f;
+			else
+				delta = 0.0f;
+
+			normal[((k)*(numSides+1) + j)*3]   = nx * sinf(j*inc+delta);
+			normal[((k)*(numSides+1) + j)*3+1] = ny;
+			normal[((k)*(numSides+1) + j)*3+2] = nx * cosf(-j*inc+delta);
+
+			vertex[((k)*(numSides+1) + j)*4]   = p[i*2] * sinf(j*inc);
+			vertex[((k)*(numSides+1) + j)*4+1] = p[(i*2)+1];
+			vertex[((k)*(numSides+1) + j)*4+2] = p[i*2] * cosf(-j*inc);
+			vertex[((k)*(numSides+1) + j)*4+3] = 1.0f;
+
+			textco[((k)*(numSides+1) + j)*2]   = ((j+0.0f)/numSides);
+			textco[((k)*(numSides+1) + j)*2+1] = (i+0.0f)/(numP-1);
+
+			float t[3]; float *n = (float *)&(normal[((k)*(numSides + 1) + j) * 3]);
+			if (fabs(VSMathLib::dotProduct(y, n)) > 0.98) {
+				t[0] = cosf(-j*inc + delta); t[1] = 0; t[2] = -sinf(j*inc + delta);
+			}
+			else {
+				VSMathLib::crossProduct(y, n, t);
+			}
+			tangent[((k)*(numSides + 1) + j) * 3] = t[0];
+			tangent[((k)*(numSides + 1) + j) * 3 + 1] = t[1];
+			tangent[((k)*(numSides + 1) + j) * 3 + 2] = t[2];
+
+
+			float bt[3];
+			VSMathLib::crossProduct(t, n, bt);
+			bitangent[((k)*(numSides + 1) + j) * 3] = bt[0];
+			bitangent[((k)*(numSides + 1) + j) * 3 + 1] = bt[1];
+			bitangent[((k)*(numSides + 1) + j) * 3 + 2] = bt[2];
+
+			// find bounding box
+			if (vertex[((k)*(numSides+1) + j)*4] < bb[0][0]) 
+				bb[0][0] = vertex[((k)*(numSides+1) + j)*4];
+			if (vertex[((k)*(numSides+1) + j)*4] > bb[1][0]) 
+				bb[1][0] = vertex[((k)*(numSides+1) + j)*4];
+
+			if (vertex[((k)*(numSides+1) + j)*4+1] < bb[0][1]) 
+				bb[0][1] = vertex[((k)*(numSides+1) + j)*4+1];
+			if (vertex[((k)*(numSides+1) + j)*4+1] > bb[1][1]) 
+				bb[1][1] = vertex[((k)*(numSides+1) + j)*4+1];
+
+			if (vertex[((k)*(numSides+1) + j)*4+2] < bb[0][2]) 
+				bb[0][2] = vertex[((k)*(numSides+1) + j)*4+2];
+			if (vertex[((k)*(numSides+1) + j)*4+2] > bb[1][2]) 
+				bb[1][2] = vertex[((k)*(numSides+1) + j)*4+2];
+		}
+
+		k++;
+		if (i < numP-1) {
+			smooth = revSmoothNormal2(points+((i+1)*2),&nx,&ny, smoothCos, 1);
+
+			if (!smooth) {
+				smoothness.push_back(1);
+				for(int j=0; j<=numSides;j++) {
+
+					normal[((k)*(numSides+1) + j)*3]   = nx * sinf(j*inc);
+					normal[((k)*(numSides+1) + j)*3+1] = ny;
+					normal[((k)*(numSides+1) + j)*3+2] = nx * cosf(-j*inc);
+
+					vertex[((k)*(numSides+1) + j)*4]   = p[(i+1)*2] * sinf(j*inc);
+					vertex[((k)*(numSides+1) + j)*4+1] = p[((i+1)*2)+1];
+					vertex[((k)*(numSides+1) + j)*4+2] = p[(i+1)*2] * cosf(-j*inc);
+					vertex[((k)*(numSides+1) + j)*4+3] = 1.0f;
+
+					textco[((k)*(numSides+1) + j)*2]   = ((j+0.0f)/numSides);
+					textco[((k)*(numSides+1) + j)*2+1] = (i+1+0.0f)/(numP-1);
+
+					float t[3]; float *n = (float *)&(normal[((k)*(numSides + 1) + j) * 3]);
+					if (fabs(VSMathLib::dotProduct(y, n)) > 0.98) {
+						t[0] = cos(-j*inc + delta); t[1] = 0; t[2] = -sinf(j*inc + delta);
 					}
 					else {
 						VSMathLib::crossProduct(y, n, t);

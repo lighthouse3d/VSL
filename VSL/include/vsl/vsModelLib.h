@@ -61,7 +61,7 @@
 #include <GL/glew.h>
 #endif
 
-#if (__VSL_MODEL_LOADING__ == 1)
+#ifdef __VSL_MODEL_LOADING__
 #include "assimp/Importer.hpp"	//OO version Header!
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
@@ -84,10 +84,6 @@ public:
 	VSModelLib();
 	~VSModelLib();
 
-#if defined(__ANDROID_API__) && (__VSL_MODEL_LOADING__ == 1)
-	static Assimp::Importer *s_Importer;
-	static void SetImporter(Assimp::Importer *imp);
-#endif
 
 	/** defines what buffers to generate
 	* \param mode Bitwise OR of masks that indicate the buffers to be generated (see enum Mode)
@@ -98,12 +94,12 @@ public:
 	*/
 	int getGenerationMode();
 
-#if (__VSL_MODEL_LOADING__ == 1)
+#if defined(__VSL_MODEL_LOADING__)
 	virtual bool load(std::string filename);
 #endif
 
 	/// implementation of the superclass abstract method
-	virtual void render();
+	virtual void render(int instances = 0);
 	/// set a predefined material
 	void setMaterialColor(MaterialColors m);
 	/// set a color component for all meshes
@@ -113,7 +109,7 @@ public:
 	/// set a color component for a particular mesh
 	void setColor(unsigned int mesh, VSResourceLib::MaterialSemantics m, float *values);
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#if defined(__VSL_TEXTURE_LOADING__)
 
 	/// load and set a texture for the object
 	virtual void addTexture(unsigned int unit, std::string filename);
@@ -158,6 +154,8 @@ public:
 			float cE[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 			memcpy(mat.emissive, cE, sizeof(float) * 4);
 
+			for (int i = 0; i < MAX_TEXTURES; ++i)
+				texUnits[i] = 0;
 			mat.shininess = 128.0;
 			mat.texCount = 0;
 		}
@@ -174,7 +172,7 @@ public:
 	std::vector<MyMesh> mMyMeshes;
 
 	void addMeshes(const VSModelLib &model);
-	void addMesh(size_t nump, float *p, float *n, float *tc, float *tang, float *bitan, size_t numInd, unsigned int *indices);
+	int addMesh(size_t nump, float *p, float *n, float *tc, float *tang, float *bitan, size_t numInd, unsigned int *indices);
 	void setMesh(int i, size_t nump, float *p, float *n, float *tc, float *tang, float *bitan, size_t numInd, unsigned int *indices);
 
 protected:
@@ -186,14 +184,14 @@ private:
 	/// aux pre processed mesh collection
 	std::vector<MyMesh> mMyMeshesAux;
 
-#if (__VSL_MODEL_LOADING__ == 1)
+#if defined(__VSL_MODEL_LOADING__)
 	// the global Assimp scene object
 	const aiScene* mScene;
 #endif
 
 	bool pUseAdjacency;
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#if defined(__VSL_TEXTURE_LOADING__)
 
 	// images / texture
 	// map image filenames to textureIds
@@ -204,7 +202,7 @@ private:
 	bool loadTextures(const aiScene *scene, std::string prefix);
 #endif
 
-#if (__VSL_MODEL_LOADING__ == 1)
+#if defined(__VSL_MODEL_LOADING__)
 	void genVAOsAndUniformBuffer(const aiScene *sc);
 	void recursive_walk_for_matrices(const aiScene *sc,
 						const aiNode* nd);

@@ -51,6 +51,7 @@ VSFontLib vsfl;
 #endif
 
 VSModelLib myModel;
+
 VSAxis axis;
 VSGrid gridY;
 
@@ -71,15 +72,11 @@ int startX, startY, tracking = 0;
 float alpha = 0.0f, beta = 0.0f;
 float r = 5.0f;
 
-
 //// Frame counting and FPS computation
 long myTime,timebase = 0,frame = 0;
 char s[32];
 
 float lightDir[4] = { 1.0f, 1.0f, 1.0f, 0.0f };
-
-
- 
 
 
 // ------------------------------------------------------------
@@ -126,7 +123,6 @@ void renderScene(void) {
 		vsml->multMatrixPoint(VSMathLib::VIEW, lightDir, res);
 		vsml->normalize(res);
 		program.setBlockUniform("Lights", "l_dir", res);
-
 
 		{
 			PROFILE_GL("Render models");

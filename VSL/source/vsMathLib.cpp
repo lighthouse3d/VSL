@@ -129,7 +129,7 @@ VSMathLib::pushMatrix(MatrixTypes aType) {
 void 
 VSMathLib::popMatrix(MatrixTypes aType) {
 
-	if (mMatrixStack[aType].size()-1 >= 0) {
+	if ((int)mMatrixStack[aType].size() - 1 >= 0) {
 		float *m = mMatrixStack[aType][mMatrixStack[aType].size()-1];
 		memcpy(mMatrix[aType], m, sizeof(float) * 16);
 		mMatrixStack[aType].pop_back();
@@ -400,7 +400,11 @@ void
 VSMathLib::invert(MatrixTypes aType) {
 
 	float *mat = mMatrix[aType];
+	invert(mat);
+}
 
+void 
+VSMathLib::invert(float *mat ) {
 	float    tmp[12]; /* temp array for pairs                      */
 	float    src[16]; /* array of transpose source matrix */
 	float    det;     /* determinant                                  */
@@ -643,14 +647,16 @@ VSMathLib::matricesToGL() {
 	
 		if (mBlocks) {
 			for (int i = 0 ; i < COUNT_MATRICES; ++i ) {
-				if (mUniformName[i] != "")
-					if (mUniformArrayIndex[i])
-						VSShaderLib::setBlockUniformArrayElement(mBlockName, 
-															mUniformName[i],
-															mUniformArrayIndex[i],
-															mMatrix[i]);
-					else
+				if (mUniformName[i] != "") {
+					if (mUniformArrayIndex[i]) {
+						VSShaderLib::setBlockUniformArrayElement(mBlockName,
+																 mUniformName[i],
+																 mUniformArrayIndex[i],
+																 mMatrix[i]);
+					} else {
 						VSShaderLib::setBlockUniform(mBlockName, mUniformName[i], mMatrix[i]);
+					}
+				}
 			}
 			if (mComputedMatUniformName[NORMAL] != "") {
 				computeNormalMatrix();
@@ -1169,6 +1175,14 @@ VSMathLib::computeDerivedMatrix(ComputedMatrixTypes aType) {
 	if (aType == PROJ_VIEW_MODEL) {
 		memcpy(mCompMatrix[PROJ_VIEW_MODEL], mMatrix[PROJECTION], 16 * sizeof(float));
 		multMatrix(mCompMatrix[PROJ_VIEW_MODEL], mCompMatrix[VIEW_MODEL]);
+	}
+	else if (aType == PROJ_VIEW) {
+		memcpy(mCompMatrix[PROJ_VIEW], mMatrix[PROJECTION], 16 * sizeof(float));
+		multMatrix(mCompMatrix[PROJ_VIEW], mMatrix[VIEW]);
+	}
+	else if (aType == VIEW_INV) {
+		memcpy(mCompMatrix[VIEW_INV], mMatrix[VIEW], 16 * sizeof(float));
+		invert(mCompMatrix[VIEW_INV]);
 	}
 }
 

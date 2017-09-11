@@ -30,7 +30,7 @@
 
 #include "vslConfig.h"
 
-#if (__VSL_FONT_LOADING__ == 1)
+#if defined(__VSL_FONT_LOADING__)
 
 #include <map>
 #include <vector>
@@ -38,6 +38,7 @@
 
 #ifdef __ANDROID_API__
 #include <GLES3/gl3.h>
+#include <android/asset_manager.h>
 #else
 #include <GL/glew.h>
 #endif
@@ -63,7 +64,7 @@ class VSFontLib  : public VSResourceLib{
 		virtual bool load(std::string fontName);
 		
 		/// Render the sentence
-		virtual void render() {};
+		virtual void render(int instances = 0) {};
 
 		/** Use this for fixed sized fonts
 		*/
@@ -105,10 +106,12 @@ class VSFontLib  : public VSResourceLib{
 		void setColor(float *values);
 		/// Sets the emissive component of the font color
 		void setColor(float r, float g, float b, float a);
+
 	protected:
 
 		/// Fixed size?
 		bool mFixedSize;
+        float mScaleFactor;
 
 	/** This class contains information for individual chars
 	  * x1,x2,y1,y2 are the texture coordinates, width, A, and C 

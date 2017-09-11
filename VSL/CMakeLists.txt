@@ -24,6 +24,7 @@ include_directories(
 	
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 add_definitions(-DTIXML_USE_STL)
+add_definitions(-DGLEW_STATIC)
 
 install (TARGETS vsl DESTINATION lib)
 install (DIRECTORY include/vsl DESTINATION include)

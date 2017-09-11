@@ -632,13 +632,14 @@ VSCubicCurve::VSCubicCurve() {
 	mCtrlPts[2].x =  0.5f; mCtrlPts[2].y = 1.0f; mCtrlPts[2].z = 0.0f;
 	mCtrlPts[3].x =  1.0f; mCtrlPts[3].y = 0.0f; mCtrlPts[3].z = 0.0f;
 	mType = CATMULL_ROM;
+	mTessLevel = 10;
 }
 
 
 void
 VSCubicCurve::set(const std::vector<Point3> &ctrlPts, unsigned int tessLevel, bool loop) {
 
-	assert("At least 4 control points are requires" && ctrlPts.size() >= 4);
+	assert("At least 4 control points are required" && ctrlPts.size() >= 4);
 
 	mCtrlPts = ctrlPts;
 	mTessLevel = tessLevel;

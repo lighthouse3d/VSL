@@ -9,15 +9,23 @@ http://www.lighthouse3d.com/very-simple-libs
 ----------------------------------------------------*/
 #include "vsFontLib.h"
 
-#if (__VSL_FONT_LOADING__ == 1)	
+#if defined (__VSL_FONT_LOADING__)
 
+#ifdef __ANDROID_API__
+#include <android/log.h>
+#endif
 
 // Constructor
 VSFontLib::VSFontLib(): VSResourceLib(),
 		mHeight(0), 
 		mNumChars(0), 
 		mPrevDepth(false),
-		mFixedSize(false)
+		mFixedSize(false),
+#if defined(__ANDROID_API__)
+        mScaleFactor(4.0)
+#else
+        mScaleFactor(1.0)
+#endif
 {
 	mMaterial.emissive[0] = 1.0f;
 	mMaterial.emissive[1] = 1.0f;
@@ -95,23 +103,47 @@ VSFontLib::load(std::string fontName)
 {
 	// Test if image file exists
 	FILE *fp;
-	std::string s;
+	std::string sf,st;
+	bool loadOK;
 	
-	s = fontName + ".tga";
-	fp = fopen(s.c_str(),"r");
+	sf = fontName + ".xml";
+	st = fontName + ".png";
+	TiXmlDocument doc(sf.c_str());
+
+#ifndef __ANDROID_API__
+	fp = fopen(sf.c_str(),"r");
 	if (fp == NULL) {
-		VSResourceLib::sLogError.addMessage("Unable to find font texture: %s", s.c_str());
+		VSResourceLib::sLogError.addMessage("Unable to find font XML file: %s", sf.c_str());
 		return false;
 	}
-	
-	mFontTex = VSResourceLib::loadRGBATexture(s);
+	fp = fopen(st.c_str(), "r");
+	if (fp == NULL) {
+		VSResourceLib::sLogError.addMessage("Unable to find font texture: %s", st.c_str());
+		return false;
+	}
+	loadOK = doc.LoadFile();
+#else
+    AAsset* asset = AAssetManager_open(s_AssetManager, sf.c_str(), AASSET_MODE_UNKNOWN);
+    const char *loc = "VSFontLib::readText";
+    char *content;
+    if (NULL == asset) {
+        __android_log_print(ANDROID_LOG_ERROR, loc, "%s", "_ASSET_NOT_FOUND_");
+        return content;
+    }
+    size_t size = (size_t)AAsset_getLength(asset);
+    content = (char*)malloc(sizeof(char)*size + 1);
+    AAsset_read(asset, content, size);
+    content[size] = '\0';
+    __android_log_print(ANDROID_LOG_DEBUG, loc, "%s", content);
+    AAsset_close(asset);
 
-	s = fontName + ".xml";
-	TiXmlDocument doc(s.c_str());
-	bool loadOK = doc.LoadFile();
+	loadOK = doc.Parse(content);
+#endif
+
+	mFontTex = VSResourceLib::loadRGBATexture(st);
 
 	if (!loadOK) {
-		VSResourceLib::sLogError.addMessage("Problem reading the XML font definition file: %s", s.c_str());
+		VSResourceLib::sLogError.addMessage("Problem reading the XML font definition file: %s", sf.c_str());
 		return false;
 	}
 	TiXmlHandle hDoc(&doc);
@@ -163,8 +195,10 @@ VSFontLib::prepareRender( float x, float y)
 
 	// get previous blend settings
 	glGetIntegerv(GL_BLEND, &mPrevBlend);
+#ifndef __ANDROID_API__
 	glGetIntegerv(GL_BLEND_DST, &mPrevBlendDst);
 	glGetIntegerv(GL_BLEND_SRC, &mPrevBlendSrc);
+#endif
 	// set blend for transparency
 	glEnable(GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -202,9 +236,9 @@ VSFontLib::restoreRender()
 	// restore previous blend settings
 	if (!mPrevBlend)
 		glDisable(GL_BLEND);
-
+#ifndef __ANDROID_API__
 	glBlendFunc(mPrevBlendSrc, mPrevBlendDst);
-
+#endif
 	// restore previous projection matrix
 	mVSML->popMatrix(VSMathLib::PROJECTION);
 
@@ -242,10 +276,10 @@ VSFontLib::prepareSentence(unsigned int index, std::string sentence)
 		// if char exists in the font definition
 		if (mChars.count(c)) {
 			positions[18 * i + 0] = hDisp;
-			positions[18 * i + 1] = vDisp + mHeight;
+			positions[18 * i + 1] = vDisp + mScaleFactor* mHeight;
 			positions[18 * i + 2] = 0.0f;
 
-			positions[18 * i + 3] = hDisp + mChars[c].width;
+			positions[18 * i + 3] = hDisp + mScaleFactor* mChars[c].width;
 			positions[18 * i + 4] = vDisp + 0.0f;
 			positions[18 * i + 5] = 0.0f;
 
@@ -253,16 +287,16 @@ VSFontLib::prepareSentence(unsigned int index, std::string sentence)
 			positions[18 * i + 7] = vDisp + 0.0f;
 			positions[18 * i + 8] = 0.0f;
 
-			positions[18 * i + 9] = hDisp + mChars[c].width;
+			positions[18 * i + 9] = hDisp + mScaleFactor* mChars[c].width;
 			positions[18 * i + 10] = vDisp + 0.0f;
 			positions[18 * i + 11] = 0.0f;
 
 			positions[18 * i + 12] = hDisp;
-			positions[18 * i + 13] = vDisp + mHeight;
+			positions[18 * i + 13] = vDisp + mScaleFactor* mHeight;
 			positions[18 * i + 14] = 0.0f;
 
-			positions[18 * i + 15] = hDisp + mChars[c].width;
-			positions[18 * i + 16] = vDisp + mHeight;
+			positions[18 * i + 15] = hDisp + mScaleFactor* mChars[c].width;
+			positions[18 * i + 16] = vDisp + mScaleFactor* mHeight;
 			positions[18 * i + 17] = 0.0f;
 
 			texCoords[12 * i + 0] = mChars[c].x1;
@@ -284,14 +318,14 @@ VSFontLib::prepareSentence(unsigned int index, std::string sentence)
 			texCoords[12 * i + 11] = 1-mChars[c].y2;
 
 			if (mFixedSize)
-				hDisp += mChars[c].C + mChars[c].A; 
+				hDisp += mScaleFactor*mChars[c].C + mScaleFactor*mChars[c].A;
 			else
-				hDisp += mChars[c].C;
+				hDisp += mScaleFactor*mChars[c].C;
 			i++;
 		}
 		// newline
 		else if (c == '\n') {
-			vDisp += mHeight;
+			vDisp += mScaleFactor*mHeight;
 			hDisp = 0.0f;
 		}
 	}

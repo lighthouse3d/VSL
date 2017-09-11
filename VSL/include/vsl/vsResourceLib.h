@@ -5,22 +5,6 @@
  *
  * VSResourceLib - Very Simple Resource Library
  *
- * \version 0.1.4
- *		Added Materials from teapots.c
- *		https://www.sgi.com/products/software/opengl/examples/redbook/source/teapots.c
- *
- * \version 0.1.3
- *		setting the material block name is now a static function
- *
- * \version 0.1.2
- *		The library can be made independent of DevIL (without texturing capabilities though)
- *
- * \version 0.1.1
- *		Added virtual function load cubemaps
- *		Added virtual function to set a preloaded texture
- *
- * version 0.1.0
- *		Initial Release
  *
  * This abstract class defines an interface 
  * for loading and rendering resources (models)
@@ -55,8 +39,10 @@
 
 #ifdef __ANDROID_API__
 #include <GLES3/gl3.h>
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#ifdef __VSL_TEXTURE_LOADING__
 #include <textureLoader.h>
+#include <assimp/Importer.hpp>
+
 #endif
 #else
 #include <GL/glew.h>
@@ -64,7 +50,7 @@
 
 
 // remove this define to skip adding the devil lib to the project
-#if (__VSL_TEXTURE_LOADING__ == 1) && !defined(__ANDROID_API__)
+#if defined(__VSL_TEXTURE_LOADING__) && !defined(__ANDROID_API__)
 #include <IL/il.h>
 #endif
 
@@ -83,6 +69,13 @@
 class VSResourceLib {
 
 public:
+
+#if defined(__ANDROID_API__)
+	static Assimp::Importer *s_Importer;
+	static void SetImporter(Assimp::Importer *imp);
+    static AAssetManager *s_AssetManager;
+    static void SetAssetManager(AAssetManager *mgr);
+#endif
 
 	/// helper structure for derived classes
 	struct Material{
@@ -142,9 +135,9 @@ public:
 	//virtual bool load(std::string filename) = 0;
 
 	/// render the resource
-	virtual void render() = 0;
+	virtual void render(int inntances = 0) = 0;
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#if defined(__VSL_TEXTURE_LOADING__)
 	/// virtual function to be implemented in derived classes
 	/// assigns a texture (from an image) to a unit
 	virtual void addTexture(unsigned int unit, std::string filename) {};

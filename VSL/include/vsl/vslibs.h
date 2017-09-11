@@ -13,7 +13,7 @@
  *	Assimp (http://assimp.sourceforge.net/)
  *	Devil (http://openil.sourceforge.net/)
  *	TinyXML (http://www.grinninglizard.com/tinyxml/)
- *		(only for fonts)
+ *
  ---------------------------------------------------------------*/
 
 
@@ -31,6 +31,6 @@
 #include "vsShaderLib.h"
 #include "vsSurfRevLib.h"
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#ifdef  __VSL_TEXTURE_LOADING__
 #include "vsFontLib.h"
 #endif

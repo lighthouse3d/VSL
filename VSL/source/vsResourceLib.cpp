@@ -80,13 +80,29 @@ GLenum VSResourceLib::faceTarget[6] = {
 	};
 
 
+#if defined(__ANDROID_API__)
+
+Assimp::Importer *VSResourceLib::s_Importer = NULL;
+AAssetManager *VSResourceLib::s_AssetManager = NULL;
+
+void
+VSResourceLib::SetAssetManager(AAssetManager *mgr) {
+    s_AssetManager = mgr;
+}
+
+void
+VSResourceLib::SetImporter(Assimp::Importer *imp) {
+    s_Importer = imp;
+}
+#endif
+
 VSResourceLib::VSResourceLib(): mScaleToUnitCube(1.0), bbVAO(0), bbInit(false)
 {
 	// get a pointer to VSMathLib singleton
 	mVSML = VSMathLib::getInstance();
 
 	/* initialization of DevIL */
-#if (__VSL_TEXTURE_LOADING__ == 1) && !defined(__ANDROID_API__)
+#if defined(__VSL_TEXTURE_LOADING__) && !defined(__ANDROID_API__)
 	ilInit(); 
 	ilEnable(IL_ORIGIN_SET);
 	ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
@@ -254,7 +270,7 @@ VSResourceLib::getInfo() {
 	return(sLogInfo.dumpToString());
 }
 
-#if (__VSL_TEXTURE_LOADING__ == 1)
+#if defined(__VSL_TEXTURE_LOADING__)
 
 // helper function for derived classes
 // loads an image and defines an 8-bit RGBA texture
@@ -264,7 +280,30 @@ VSResourceLib::loadRGBATexture(std::string filename,
 						GLenum aFilter, GLenum aRepMode) {
 
 #ifdef __ANDROID_API__
-	return (unsigned int)LoadTexture(filename);
+
+	GLenum minFilter = aFilter;
+	if (aFilter == GL_LINEAR && mipmap) {
+		minFilter = GL_LINEAR_MIPMAP_LINEAR;
+	}
+	else if (aFilter == GL_NEAREST && mipmap){
+		minFilter = GL_NEAREST_MIPMAP_LINEAR;
+	}
+
+    unsigned int textureID = (unsigned int)LoadTexture(filename);
+
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, aFilter);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, aRepMode);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, aRepMode);
+
+	// Mipmapping?
+	if (mipmap)
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+	glBindTexture(GL_TEXTURE_2D,0);
+
+	return textureID;
 #else
 
 	ILboolean success;
