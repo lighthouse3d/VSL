@@ -107,7 +107,7 @@ VSFontLib::load(std::string fontName)
 	bool loadOK;
 	
 	sf = fontName + ".xml";
-	st = fontName + ".png";
+	st = fontName + ".tga";
 	TiXmlDocument doc(sf.c_str());
 
 #ifndef __ANDROID_API__
