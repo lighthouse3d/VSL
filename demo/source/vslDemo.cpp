@@ -93,7 +93,7 @@ void changeSize(int w, int h) {
 		h = 1;
 
 	// Set the viewport to be the entire window
-    glViewport(0, 0, w, h);
+        glViewport(0, 0, w, h);
 
 	ratio = (1.0f * w) / h;
 	vsml->loadIdentity(VSMathLib::PROJECTION);
